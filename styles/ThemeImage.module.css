@@ -1,0 +1,27 @@
+.lightImage {
+    display: block !important;
+}
+
+.darkImage {
+    display: none !important;
+}
+
+/* Handle system preference */
+@media (prefers-color-scheme: dark) {
+    .lightImage {
+        display: none !important;
+    }
+
+    .darkImage {
+        display: block !important;
+    }
+}
+
+/* Handle manual class override if present */
+:global(.dark) .lightImage {
+    display: none !important;
+}
+
+:global(.dark) .darkImage {
+    display: block !important;
+}

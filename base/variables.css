@@ -1,0 +1,44 @@
+:root {
+  /* Primary Colors - Chinar Leaf Inspired */
+  --chinar-orange: #D2691E;
+  --chinar-red: #CD5C5C;
+  --chinar-light: #F4A460;
+  --chinar-dark: #A0522D;
+  
+  /* Background Colors - WHITE THEME */
+  --bg-primary: #FFFFFF;
+  --bg-card: #FEFEFE;
+  --bg-card-right: #F9F9F9;
+  --bg-header: #FFFFFF;
+  
+  /* Text Colors */
+  --text-primary: #2D1810;
+  --text-secondary: #5D4037;
+  --text-muted: #8D6E63;
+  --text-kashmiri: #B8860B;
+  
+  /* Border Colors */
+  --border-light: #E8D5C4;
+  --border-medium: #D7C4B0;
+  
+  /* Shadow Colors */
+  --shadow-light: rgba(210, 105, 30, 0.1);
+  --shadow-medium: rgba(210, 105, 30, 0.15);
+  --shadow-strong: rgba(210, 105, 30, 0.25);
+}
+
+/* Dark mode variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1A1611;
+    --bg-card: #2A1F1A;
+    --bg-card-right: #332620;
+    --bg-header: #2D2419;
+    --text-primary: #2f8cf3;
+    --text-secondary: #E0C4A0;
+    --text-muted: #C4A484;
+    --text-kashmiri: #F4D03F;
+    --border-light: #3D2F24;
+    --border-medium: #4A3A2D;
+  }
+}

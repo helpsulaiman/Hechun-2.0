@@ -1,0 +1,183 @@
+.Root {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    /* Adapting to full width for layout */
+}
+
+.List {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    /* Vertical list for sidebar */
+    gap: 0.5rem;
+    /* border-bottom: 1px solid var(--mauve-6); REMOVED for sidebar style */
+}
+
+.Trigger {
+    all: unset;
+    font-family: inherit;
+    background-color: transparent;
+    padding: 0 20px;
+    height: 50px;
+    /* Increased height */
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    /* Align left */
+    font-size: 15px;
+    line-height: 1;
+    color: #94a3b8;
+    /* text-gray-400 */
+    user-select: none;
+    border-radius: 0.75rem;
+    /* rounded-xl */
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.Trigger:hover {
+    color: #e2e8f0;
+    /* text-gray-200 */
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.Trigger[data-state="active"] {
+    background-color: rgba(37, 99, 235, 0.2);
+    /* bg-blue-600/20 */
+    border-color: rgba(59, 130, 246, 0.5);
+    /* border-blue-500/50 */
+    color: white;
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
+}
+
+/* Specific style for Progress Tab trigger if needed, can use nth-child or specific class override in component */
+
+.Content {
+    flex-grow: 1;
+    outline: none;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.Text {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #94a3b8;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.Fieldset {
+    all: unset;
+    margin-bottom: 15px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+
+.Label {
+    font-size: 13px;
+    line-height: 1;
+    margin-bottom: 10px;
+    color: var(--foreground);
+    /* Adapted for light/dark */
+    display: block;
+    user-select: none;
+    font-weight: 700;
+}
+
+.Input {
+    all: unset;
+    flex: 1 0 auto;
+    border-radius: 0.75rem;
+    /* rounded-xl */
+    padding: 0 16px;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--foreground);
+    background-color: var(--input);
+    border: 1px solid var(--border);
+    height: 45px;
+    transition: all 0.2s ease;
+}
+
+.Input:focus {
+    box-shadow: 0 0 0 2px var(--ring);
+    border-color: var(--ring);
+    background-color: var(--background);
+}
+
+.Button {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    padding: 0 24px;
+    font-size: 15px;
+    line-height: 1;
+    font-weight: 600;
+    height: 45px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.Button:global(.green) {
+    background-color: #22c55e;
+    color: white;
+}
+
+.Button:global(.green):hover {
+    background-color: #16a34a;
+}
+
+/* Custom Blue Button */
+.ButtonBlue {
+    background-color: #2563eb;
+    /* blue-600 */
+    color: white;
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+}
+
+.ButtonBlue:hover {
+    background-color: #3b82f6;
+    /* blue-500 */
+}
+
+.ButtonBlue:active {
+    transform: scale(0.98);
+}
+
+.ButtonBlue:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+:root {
+    --black-a4: rgba(0, 0, 0, 0.04);
+    --mauve-6: #e4e4e7;
+    --mauve-11: #71717a;
+    --violet-11: #6d28d9;
+    --violet-12: #4c1d95;
+    --green-4: #bbf7d0;
+    --green-5: #86efac;
+    --green-11: #14532d;
+    --violet-7: #a78bfa;
+    --violet-8: #8b5cf6;
+}

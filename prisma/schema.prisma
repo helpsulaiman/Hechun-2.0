@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model UserProfile {
+  id           String   @id @default(uuid())
+  user_id      String   @unique // Auth user ID from Supabase Auth
+  skill_vector Json     @default("{}") // {reading: 1000, speaking: 1000}
+  created_at   DateTime @default(now())
+  
+  progress     LessonProgress[]
+
+  @@map("user_profiles")
+}
+
+model Lesson {
+  id               String   @id @default(uuid())
+  title            String
+  description      String?
+  complexity_score Float    // 0 to 100
+  skills_targeted  Json     // {reading: 0.5, grammar: 0.2}
+  content          Json     // The actual lesson data
+  
+  // Graph Relations
+  prerequisites    LessonDependency[] @relation("LessonPrerequisites")
+  dependents       LessonDependency[] @relation("LessonDependents")
+  
+  progress         LessonProgress[]
+
+  @@map("lessons")
+}
+
+model LessonDependency {
+  id             String @id @default(uuid())
+  lesson_id      String
+  prerequisite_id String
+  
+  lesson         Lesson @relation("LessonPrerequisites", fields: [lesson_id], references: [id])
+  prerequisite   Lesson @relation("LessonDependents", fields: [prerequisite_id], references: [id])
+
+  @@unique([lesson_id, prerequisite_id])
+  @@map("lesson_dependencies")
+}
+
+model LessonProgress {
+  id           String   @id @default(uuid())
+  user_id      String   // Links to UserProfile.id
+  lesson_id    String
+  score        Float
+  completed_at DateTime @default(now())
+  
+  user         UserProfile @relation(fields: [user_id], references: [id])
+  lesson       Lesson      @relation(fields: [lesson_id], references: [id])
+
+  @@map("lesson_progress")
+}
