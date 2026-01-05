@@ -191,17 +191,16 @@ export default function OnboardingStart() {
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => handleSelect(level.id)}
                                                 disabled={isTransitioning}
-                                                className={`
-p - 6 rounded - 2xl border text - left transition - all group
+                                                className={`p-6 rounded-2xl border text-left transition-all group
                                                     ${skills[stepData.field!] === level.id
                                                         ? 'border-indigo-500 bg-indigo-500/20'
                                                         : 'border-white/10 bg-white/5 hover:border-white/30'
                                                     }
-disabled: opacity - 50 disabled: cursor - not - allowed
+disabled:opacity-50 disabled:cursor-not-allowed
     `}
                                             >
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className={`font - bold text - lg ${skills[stepData.field!] === level.id ? 'text-indigo-400' : 'text-white'} `}>
+                                                    <span className={`font-bold text-lg ${skills[stepData.field!] === level.id ? 'text-indigo-400' : 'text-white'} `}>
                                                         {level.label}
                                                     </span>
                                                     {skills[stepData.field!] === level.id && (
