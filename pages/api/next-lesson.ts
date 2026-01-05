@@ -14,9 +14,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Guests would need to send their "completed lesson IDs" in the body.
     const guestSkills = req.body.guestSkills;
 
-    if (!userId && !guestSkills) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+    // Allow guest access (if no userId, and no guestSkills, assume new guest)
+    // if (!userId && !guestSkills) {
+    //    return res.status(401).json({ error: 'Unauthorized' });
+    // }
 
     try {
         // 1. Get User State

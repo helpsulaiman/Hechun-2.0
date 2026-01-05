@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '../../components/Layout';
@@ -6,32 +6,25 @@ import { fetchLessons } from '../../lib/learning-api';
 import { LearningLesson } from '../../types/learning';
 import { Check, X, ArrowRight } from 'lucide-react';
 
-// Hardcoded diagnostic questions for MVP
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { motion, AnimatePresence } from 'framer-motion';
-import Layout from '../../components/Layout';
-import { Check, X, ArrowRight } from 'lucide-react';
-
 // Expanded Adaptive Question Pool (Complexity 1-10)
 const QUESTION_POOL = [
     // Beginner (1-3)
     { id: 101, complexity: 1, text: 'What does "Salam" mean?', options: ['Goodbye', 'Hello/Peace', 'Thank you', 'Yes'], correct: 1, skill: 'reading' },
-    { id: 102, complexity: 1, text: 'Select "Water":', options: ['Posh (Flower)', 'Aab', 'Naar (Fire)', 'Haa'], correct: 1, skill: 'vocabulary' },
-    { id: 103, complexity: 2, text: 'What is "kǝšur"?', options: ['Kashmir', 'Kashmiri Language', 'Winter', 'Food'], correct: 1, skill: 'reading' },
+    { id: 102, complexity: 1, text: 'Select "Water":', options: ['Posh', 'Aab', 'Naar', 'Haa'], correct: 1, skill: 'vocabulary' },
+    { id: 103, complexity: 2, text: 'What is "kǝšur zabaan"?', options: ['Kashmir', 'Kashmiri Language', 'Winter', 'Food'], correct: 1, skill: 'reading' },
     { id: 104, complexity: 2, text: 'Translate: "Hu kus chu?"', options: ['Who is he?', 'Where is he?', 'What is that?', 'How are you?'], correct: 0, skill: 'grammar' },
-    { id: 105, complexity: 3, text: '"Me che boch lagan" means:', options: ['I am thirsty', 'I am hungry', 'I am tired', 'I am happy'], correct: 1, skill: 'grammar' },
+    { id: 105, complexity: 3, text: '"Me lej boch" means:', options: ['I am thirsty', 'I am hungry', 'I am tired', 'I am happy'], correct: 1, skill: 'grammar' },
 
     // Intermediate (4-6)
-    { id: 201, complexity: 4, text: 'Which word means "Tomorrow"?', options: ['Az', 'Pagah', 'Raath', 'Sont'], correct: 1, skill: 'vocabulary' },
-    { id: 202, complexity: 5, text: 'Complete: "Tse kya ______?" (What is your name?)', options: ['chuy naav', 'chu karun', 'gatsun', 'khyon'], correct: 0, skill: 'grammar' },
+    { id: 201, complexity: 4, text: 'Which word means "Tomorrow"?', options: ['Āz', 'Pagah', 'Rāth', 'Öutre'], correct: 1, skill: 'vocabulary' },
+    { id: 202, complexity: 5, text: 'Complete: "Tsye kya ______?" (What is your name?)', options: ['chuy naav', 'chuy karun', 'gasun', 'khyon'], correct: 0, skill: 'grammar' },
     { id: 203, complexity: 5, text: 'Identify the plural of "Garr" (Home):', options: ['Gar', 'Gar-e', 'Garr-as', 'Gar-an'], correct: 0, skill: 'grammar' }, // Context dependent, but let's assume simplified
-    { id: 204, complexity: 6, text: 'Translate: "Bi chus school gatshan"', options: ['I am going to school', 'I went to school', 'I will go to school', 'School is far'], correct: 0, skill: 'grammar' },
+    { id: 204, complexity: 6, text: 'Translate: "Bi chus school gasān"', options: ['I am going to school', 'I went to school', 'I will go to school', 'School is far'], correct: 0, skill: 'grammar' },
 
     // Advanced/Fluent (7-10)
     { id: 301, complexity: 7, text: 'Idiom: "Aab-e zoon" refers to:', options: ['Moon reflected in water (impossible)', 'Very beautiful/Pure', 'A cold winter night', 'Heavy rain'], correct: 1, skill: 'vocabulary' }, // Poetic
-    { id: 302, complexity: 8, text: 'Correct nuance: "Wala" vs "Yit"', options: ['Wala is rude', 'Yit is come (imperative), Wala is bring', 'Both mean go', 'No difference'], correct: 1, skill: 'speaking' }, // Rough approximation
-    { id: 303, complexity: 9, text: 'Complete proverb: "Naav _____, aab ______"', options: ['pet, bon', 'tar, pak', 'daryav, wath', 'None of these'], correct: 0, skill: 'reading' }, // Mock proverb
+    { id: 302, complexity: 8, text: 'Correct nuance: "Wala" vs "Yuv"', options: ['Wala is rude', 'Yuv is come (imperative), Wala is bring', 'Both mean go', 'No difference'], correct: 1, skill: 'speaking' }, // Rough approximation
+    { id: 303, complexity: 9, text: 'Complete proverb: "Naayi _____, aab as______"', options: ['pet, manz', 'tar, pak', 'daryav, wath', 'None of these'], correct: 0, skill: 'reading' }, // Mock proverb
     { id: 304, complexity: 9, text: 'Complex Tense: "Su oos pak-aan" means:', options: ['He walks', 'He was walking', 'He has walked', 'He will walk'], correct: 1, skill: 'grammar' },
     { id: 305, complexity: 10, text: 'Literary: "Lal Ded" is famous for:', options: ['Vakhs (Poetry)', 'Warfare', 'Cooking', 'Architecture'], correct: 0, skill: 'culture' }
 ];
@@ -126,19 +119,20 @@ export default function DiagnosticTest() {
                 <div className="w-full max-w-2xl">
                     <AnimatePresence mode="wait">
                         {!isFinished && currentQ ? (
+
                             <motion.div
                                 key={currentQ.id}
                                 initial={{ opacity: 0, x: 50 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -50 }}
-                                className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-md"
+                                className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-8 backdrop-blur-md shadow-sm dark:shadow-none"
                             >
-                                <div className="flex justify-between text-sm text-gray-400 mb-6">
+                                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-6">
                                     <span>Question {qIndex + 1}/{questions.length}</span>
                                     <span>Complexity: {currentQ.complexity}</span>
                                 </div>
 
-                                <h2 className="text-2xl font-bold text-white mb-8">{currentQ.text}</h2>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">{currentQ.text}</h2>
 
                                 <div className="grid gap-4">
                                     {currentQ.options.map((opt, idx) => (
@@ -149,10 +143,10 @@ export default function DiagnosticTest() {
                                             className={`
                                                 p-4 rounded-xl text-left transition-all font-medium flex justify-between items-center
                                                 ${isAnswered && idx === currentQ.correct
-                                                    ? 'bg-green-500/20 border-green-500 text-green-400 border'
+                                                    ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-500/20 dark:text-green-400 border'
                                                     : isAnswered && idx === selected
-                                                        ? 'bg-red-500/20 border-red-500 text-red-400 border'
-                                                        : 'bg-white/5 hover:bg-white/10 border border-transparent'}
+                                                        ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-500/20 dark:text-red-400 border'
+                                                        : 'bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-900 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-gray-100'}
                                             `}
                                         >
                                             {opt}
@@ -166,18 +160,18 @@ export default function DiagnosticTest() {
                             <motion.div
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                className="text-center bg-white/5 border border-white/10 rounded-3xl p-12"
+                                className="text-center bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-12 shadow-sm dark:shadow-none"
                             >
                                 <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <Check className="w-10 h-10 text-white" />
                                 </div>
-                                <h2 className="text-3xl font-bold text-white mb-4">Assessment Complete!</h2>
-                                <p className="text-gray-400 mb-8">
+                                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Assessment Complete!</h2>
+                                <p className="text-gray-600 dark:text-gray-400 mb-8">
                                     You got {score} out of {questions.length} correct.
                                     <br />
                                     We've calibrated your learning path.
                                 </p>
-                                <div className="animate-pulse text-indigo-400">
+                                <div className="animate-pulse text-indigo-600 dark:text-indigo-400">
                                     Redirecting to your path...
                                 </div>
                             </motion.div>

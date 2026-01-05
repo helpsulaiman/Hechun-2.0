@@ -9,10 +9,11 @@ interface SkillRadarProps {
         listening?: number;
         writing?: number;
     };
+    max?: number;
     size?: number;
 }
 
-export default function SkillRadar({ skills, size = 300 }: SkillRadarProps) {
+export default function SkillRadar({ skills, size = 300, max = 100 }: SkillRadarProps) {
     // Config
     const center = size / 2;
     // Increased radius to fill more space (was 0.35)
@@ -27,10 +28,9 @@ export default function SkillRadar({ skills, size = 300 }: SkillRadarProps) {
 
     const angles = axisConfig.map(a => a.angle * (Math.PI / 180));
 
-    // Calculate dynamic points based on skill values (0-100)
-    // Removed min clamp of 10 to allow true 0
+    // Calculate dynamic points based on skill values (0-max)
     const getPoint = (angle: number, value: number) => {
-        const dist = (Math.max(0, Math.min(100, value)) / 100) * radius;
+        const dist = (Math.max(0, Math.min(max, value)) / max) * radius;
         return {
             x: center + Math.cos(angle) * dist,
             y: center + Math.sin(angle) * dist

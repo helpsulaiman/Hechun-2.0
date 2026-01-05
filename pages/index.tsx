@@ -5,6 +5,7 @@ import { useUser } from '@supabase/auth-helpers-react';
 import { ArrowRight, Sparkles, Map } from 'lucide-react';
 import ThemeImage from '../components/ThemeImage';
 import SkillRadar from '../components/SkillRadar';
+import GuestLoginNudge from '../components/GuestLoginNudge';
 
 export default function HomePage() {
   const user = useUser();
@@ -19,11 +20,6 @@ export default function HomePage() {
 
   const checkProfile = async () => {
     setLoading(true);
-
-    // Check local storage for guest progress first (only if not logged in? or always?)
-    // If logged in, we prefer server data usually. 
-    // But existing logic prioritized local. Let's keep it but also fetch user if logged in to overwrite/merge?
-    // Actually, if user is logged in, we should check API. 
 
     if (user) {
       try {
@@ -73,14 +69,14 @@ export default function HomePage() {
 function WelcomeView() {
   return (
     <Layout title="Welcome to Hechun" fullWidth>
-      <div className="min-h-[85vh] flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="min-h-[85vh] flex flex-col items-center justify-center relative overflow-hidden bg-white dark:bg-slate-950">
         {/* Background Elements */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
           <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-3xl"></div>
           <div className="absolute top-[40%] -right-[10%] w-[40%] h-[60%] bg-purple-500/10 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="z-10 container mx-auto px-4 text-center max-w-4xl">
+        <div className="z-10 container mx-auto px-4 text-center max-w-4xl relative">
           <div className="mb-8 flex justify-center">
             <div className="w-32 h-32 md:w-48 md:h-48 relative animate-float">
               <ThemeImage
@@ -112,7 +108,7 @@ function WelcomeView() {
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
 
-          <div className="mt-12 flex justify-center gap-8 text-sm text-gray-500">
+          <div className="mt-12 flex justify-center gap-8 text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-400"></div>
               Dynamic Path
@@ -147,12 +143,23 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
 
   useEffect(() => {
     async function fetchNext() {
+      // Get completed IDs for guest
+      let completedIds: number[] = [];
+      const localProgress = localStorage.getItem('hechun_guest_progress_counts');
+      if (localProgress) {
+        try {
+          const counts = JSON.parse(localProgress);
+          completedIds = Object.keys(counts).map(Number);
+        } catch (e) { }
+      }
+
       try {
         const res = await fetch('/api/next-lesson', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            guestSkills: guestSkills
+            guestSkills: guestSkills || {},
+            completedIds: completedIds
           })
         });
         const data = await res.json();
@@ -195,11 +202,11 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
     <Layout title="Your Path">
       <div className="container mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="text-3xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
             <Map className="w-8 h-8 text-indigo-500" />
             Your Learning Path
           </h1>
-          <div className="bg-indigo-500/10 text-indigo-400 px-4 py-1 rounded-full text-sm font-medium">
+          <div className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-4 py-1 rounded-full text-sm font-medium">
             Beta v2.0
           </div>
         </div>
@@ -211,10 +218,10 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
             <h2 className="text-xl font-bold mb-6 text-gray-500 uppercase text-sm tracking-widest pl-2">Current Objective</h2>
             {loading ? (
               <div className="flex justify-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
               </div>
             ) : nextLesson ? (
-              <div className="max-w-2xl mx-auto">
+              <div className="max-w-2xl mx-auto flex flex-col gap-6">
                 <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group hover:scale-[1.02] transition-transform cursor-pointer">
                   <div className="absolute top-0 right-0 p-4 opacity-20">
                     <Sparkles className="w-32 h-32" />
@@ -229,7 +236,7 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
 
                     <div className="flex items-center gap-4">
                       <Link href={`/lesson/${nextLesson.id}`}>
-                        <button className="bg-white text-indigo-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-100 transition-colors">
+                        <button className="bg-white text-indigo-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-100 transition-colors shadow-lg">
                           Start Lesson <ArrowRight className="w-5 h-5" />
                         </button>
                       </Link>
@@ -237,18 +244,22 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
                     </div>
                   </div>
                 </div>
+
+                {!user && (
+                  <GuestLoginNudge />
+                )}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center min-h-[300px] bg-white/5 border border-white/10 rounded-3xl p-8 text-center">
-                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                  <Sparkles className="w-8 h-8 text-yellow-400" />
+              <div className="flex flex-col items-center justify-center min-h-[300px] bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-8 text-center shadow-sm">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                  <Sparkles className="w-8 h-8 text-yellow-500 dark:text-yellow-400" />
                 </div>
-                <h2 className="text-2xl font-bold mb-2">No Lessons Available</h2>
-                <p className="text-gray-400 max-w-md">
+                <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">No Lessons Available</h2>
+                <p className="text-gray-500 dark:text-gray-400 max-w-md">
                   We couldn't find a path for you yet.
                   (Did you run the seed script?)
                 </p>
-                <div className="mt-4 p-4 bg-gray-900 rounded-lg text-xs font-mono text-left">
+                <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg text-xs font-mono text-left text-gray-800 dark:text-gray-300">
                   npm run dev<br />
                   curl http://localhost:3000/api/dev/seed
                 </div>
@@ -258,8 +269,8 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
 
 
           {/* Right Col: Stats */}
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
-            <h2 className="text-xl font-bold mb-4 text-center">Your Skill Profile</h2>
+          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-8 shadow-sm">
+            <h2 className="text-xl font-bold mb-4 text-center text-gray-900 dark:text-white">Your Skill Profile</h2>
             {(() => {
               const skills = userSkills || guestSkills || {};
               return (
@@ -272,7 +283,7 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
                 />
               );
             })()}
-            <div className="mt-6 text-center text-sm text-gray-400">
+            <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
               Your adaptive profile updates after every lesson.
             </div>
           </div>
@@ -282,7 +293,7 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
           {!showResetConfirm ? (
             <button
               onClick={() => setShowResetConfirm(true)}
-              className="text-sm text-red-500 hover:text-red-400 underline opacity-60 hover:opacity-100 transition-all font-medium py-2 px-4 rounded hover:bg-red-900/10"
+              className="text-sm text-red-500 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 underline opacity-60 hover:opacity-100 transition-all font-medium py-2 px-4 rounded hover:bg-red-50 dark:hover:bg-red-900/10"
             >
               Reset Progress
             </button>

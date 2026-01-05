@@ -5,13 +5,14 @@ import DashboardLayout from '../../components/DashboardLayout'; // Assuming usin
 import Layout from '../../components/Layout';
 import { fetchLessonWithSteps, submitLessonProgress } from '../../lib/learning-api';
 import { LearningLesson, LessonStep } from '../../types/learning';
-import { ArrowLeft, CheckCircle, PlayCircle, BookOpen, Sparkles, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle, PlayCircle, BookOpen, Sparkles, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PhoneticLesson from '../../components/lesson/PhoneticLesson';
 import DialogueLesson from '../../components/lesson/DialogueLesson';
 import ListLesson from '../../components/lesson/ListLesson';
 import TeachStep from '../../components/lesson/TeachStep';
 import QuizStep from '../../components/lesson/QuizStep';
+import InputStep from '../../components/lesson/InputStep';
 
 export default function LessonPlayer() {
     const router = useRouter();
@@ -25,7 +26,7 @@ export default function LessonPlayer() {
     const [progress, setProgress] = useState(0);
     const [stepIndex, setStepIndex] = useState(0);
     const [canAdvance, setCanAdvance] = useState(false);
-    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const [showTransliteration, setShowTransliteration] = useState(true);
 
     useEffect(() => {
         if (!id) return;
@@ -82,18 +83,18 @@ export default function LessonPlayer() {
                 <div className="mb-8">
                     <button
                         onClick={() => router.push('/')}
-                        className="text-gray-500 hover:text-white flex items-center gap-2 mb-4 transition-colors"
+                        className="text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center gap-2 mb-4 transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" /> Back to Path
                     </button>
-                    <h1 className="text-3xl md:text-5xl font-bold mb-4">{lesson.title}</h1>
-                    <p className="text-xl text-gray-400">{lesson.description}</p>
+                    <h1 className="text-3xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">{lesson.title}</h1>
+                    <p className="text-xl text-gray-600 dark:text-gray-400">{lesson.description}</p>
                 </div>
 
                 {/* Content Area */}
                 {/* Progress Bar for Structured Lessons */}
                 {lesson.content?.type === 'structured' && (
-                    <div className="mb-6 bg-white/10 h-2 rounded-full overflow-hidden">
+                    <div className="mb-6 bg-gray-200 dark:bg-white/10 h-2 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-indigo-500 transition-all duration-500 ease-out"
                             style={{ width: `${((stepIndex + 1) / lesson.content.steps.length) * 100}%` }}
@@ -102,7 +103,19 @@ export default function LessonPlayer() {
                 )}
 
                 {/* Content Area */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 min-h-[400px] relative overflow-hidden flex flex-col justify-center">
+                <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-8 min-h-[400px] relative overflow-hidden flex flex-col justify-center shadow-sm dark:shadow-none">
+
+                    {/* View Options */}
+                    <div className="absolute top-4 right-4 z-10">
+                        <button
+                            onClick={() => setShowTransliteration(!showTransliteration)}
+                            className="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-black/20 dark:hover:bg-black/40 rounded-full text-gray-500 dark:text-indigo-200 transition-colors"
+                            title={showTransliteration ? "Hide Transliteration" : "Show Transliteration"}
+                        >
+                            {showTransliteration ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                    </div>
+
                     {/* Dynamic Content Renderer */}
                     {lesson.content?.type === 'structured' ? (
                         <div key={stepIndex} className="w-full">
@@ -113,19 +126,27 @@ export default function LessonPlayer() {
                                 if (step.type === 'teach') {
                                     // Auto-enable advance for read-only steps
                                     if (!canAdvance) setCanAdvance(true);
-                                    return <TeachStep content={step.content} />;
+                                    return <TeachStep content={step.content} showTransliteration={showTransliteration} />;
                                 }
                                 if (step.type.startsWith('quiz')) {
                                     return <QuizStep
                                         content={step.content}
+                                        showTransliteration={showTransliteration}
                                         onComplete={(success) => {
                                             if (success) {
                                                 setCanAdvance(true);
-                                                setShowSparkle(true); // Sparkle on every correct quiz answer?
-                                                // Actually user said "sparkles... once after a lesson is complete" OR "next lesson... sparkles".
-                                                // "next lesson/complete lesson button sparkles/shines once after a lesson is complete. This should only be in quizes"
-                                                // I will sparkle the button when it becomes active or when clicked for completion.
-                                                // I'll keep the sparkle on the button itself.
+                                                setShowSparkle(true);
+                                            }
+                                        }}
+                                    />;
+                                }
+                                if (['translate_k2e', 'translate_e2k', 'listen_transcribe', 'read_speak'].includes(step.type)) {
+                                    return <InputStep
+                                        content={step.content}
+                                        showTransliteration={showTransliteration}
+                                        onComplete={(success) => {
+                                            if (success) {
+                                                setCanAdvance(true);
                                             }
                                         }}
                                     />;
@@ -147,8 +168,8 @@ export default function LessonPlayer() {
 
                             {/* Fallback for unknown/legacy types */}
                             {(!lesson.content || !['phonetic', 'dialogue', 'list', 'structured'].includes(lesson.content.type)) && (
-                                <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-                                    <div className="prose prose-invert max-w-none text-center">
+                                <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+                                    <div className="prose prose-indigo dark:prose-invert max-w-none text-center">
                                         <BookOpen className="w-12 h-12 mb-4 opacity-50 mx-auto" />
                                         <p>Content type: {lesson.content?.type || 'Unknown'}</p>
                                     </div>
@@ -160,7 +181,7 @@ export default function LessonPlayer() {
 
                 {/* Actions */}
                 <div className="mt-8 flex justify-end relative">
-                    {/* Sparkle Overlay */}
+                    {/* ... Actions Content ... */}
                     <AnimatePresence>
                         {showSparkle && (
                             <motion.div
@@ -184,23 +205,17 @@ export default function LessonPlayer() {
                             disabled={!canAdvance || submitting}
                             onClick={async () => {
                                 if (stepIndex < lesson.content.steps.length - 1) {
-                                    // Next Step
                                     setStepIndex(prev => prev + 1);
-                                    setCanAdvance(false); // Reset for next step
+                                    setCanAdvance(false);
                                     setShowSparkle(false);
                                 } else {
-                                    // Complete Lesson
                                     setSubmitting(true);
-
-                                    // Sparkle on finish? 
                                     if (lesson.content.steps[stepIndex].type.startsWith('quiz')) {
                                         setShowSparkle(true);
                                         await new Promise(r => setTimeout(r, 1000));
                                     } else {
                                         await new Promise(r => setTimeout(r, 300));
                                     }
-
-                                    // ... Submit Logic ...
                                     try {
                                         if (user) {
                                             await fetch('/api/progress', {
@@ -208,29 +223,39 @@ export default function LessonPlayer() {
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ lessonId: lesson.id, score: 1.0 })
                                             });
+                                            router.push('/');
                                         } else {
-                                            // Guest Logic (Duplicated for brevity, ideally extracted)
-                                            // ... existing guest logic ...
+                                            // GUEST STATE LOGIC
                                             const progressKey = 'hechun_guest_progress_counts';
                                             const legacyKey = 'hechun_guest_progress';
                                             let progressCounts: Record<string, number> = {};
                                             const storedCounts = localStorage.getItem(progressKey);
-                                            if (storedCounts) progressCounts = JSON.parse(storedCounts);
-                                            else {
-                                                const legacy = localStorage.getItem(legacyKey);
-                                                if (legacy) { const arr = JSON.parse(legacy); arr.forEach((id: string) => { progressCounts[id] = 1; }); }
-                                            }
+
+                                            try {
+                                                if (storedCounts) progressCounts = JSON.parse(storedCounts);
+                                            } catch (e) { }
+
                                             const currentCount = progressCounts[lesson.id] || 0;
                                             progressCounts[lesson.id] = currentCount + 1;
                                             localStorage.setItem(progressKey, JSON.stringify(progressCounts));
+                                            localStorage.setItem(legacyKey, JSON.stringify(Object.keys(progressCounts).map(Number)));
 
-                                            // Basic skill update
+                                            // Update Skills
                                             const skillsKey = 'hechun_guest_skills';
                                             const localSkills = localStorage.getItem(skillsKey);
-                                            const currentVector = localSkills ? JSON.parse(localSkills) : { reading: 10, writing: 10, speaking: 10 };
+                                            // Default start at 0 if new
+                                            const currentVector = localSkills ? JSON.parse(localSkills) : { reading: 0, writing: 0, speaking: 0, grammar: 0 };
+
+                                            // Increment by 10 points
+                                            currentVector.reading = (currentVector.reading || 0) + 10;
+                                            currentVector.speaking = (currentVector.speaking || 0) + 10;
+                                            currentVector.writing = (currentVector.writing || 0) + 5;
+
                                             localStorage.setItem(skillsKey, JSON.stringify(currentVector));
+
+                                            // Redirect to dashboard where nudge will appear if needed
+                                            router.push('/');
                                         }
-                                        router.push('/');
                                     } catch (e) {
                                         console.error(e);
                                         router.push('/');
@@ -245,7 +270,6 @@ export default function LessonPlayer() {
                             )}
                         </button>
                     ) : (
-                        // Standard Button for Legacy Types
                         <button
                             className={`
                                 px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center gap-2 
@@ -255,138 +279,59 @@ export default function LessonPlayer() {
                             disabled={submitting}
                             onClick={async () => {
                                 setSubmitting(true);
-
-                                // Check for Quiz Type
                                 const isQuiz = ['quiz', 'quiz_easy', 'test'].includes(lesson.content?.type || '');
-
                                 if (isQuiz) {
                                     setShowSparkle(true);
-                                    // Wait for sparkle
                                     await new Promise(r => setTimeout(r, 1000));
                                 } else {
-                                    // Just a small delay for feel
                                     await new Promise(r => setTimeout(r, 300));
                                 }
-
-                                // Submit Logic (Duplicated)
                                 try {
                                     if (user) {
-                                        // Authenticated: Save to DB
                                         await fetch('/api/progress', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ lessonId: lesson.id, score: 1.0 })
                                         });
+                                        router.push('/');
                                     } else {
-                                        // Guest: Save to LocalStorage
+                                        // GUEST STATE LOGIC
                                         const progressKey = 'hechun_guest_progress_counts';
                                         const legacyKey = 'hechun_guest_progress';
-
                                         let progressCounts: Record<string, number> = {};
-
                                         const storedCounts = localStorage.getItem(progressKey);
-                                        if (storedCounts) {
-                                            progressCounts = JSON.parse(storedCounts);
-                                        } else {
-                                            const legacy = localStorage.getItem(legacyKey);
-                                            if (legacy) {
-                                                const arr = JSON.parse(legacy);
-                                                arr.forEach((id: string) => { progressCounts[id] = 1; });
-                                            }
-                                        }
+
+                                        try {
+                                            if (storedCounts) progressCounts = JSON.parse(storedCounts);
+                                        } catch (e) { }
 
                                         const currentCount = progressCounts[lesson.id] || 0;
-                                        let gainFactor = 0;
-                                        if (currentCount === 0) gainFactor = 1.0;
-                                        else if (currentCount === 1) gainFactor = 0.15;
-                                        else if (currentCount === 2) gainFactor = 0.05;
-                                        else gainFactor = 0.0;
-
                                         progressCounts[lesson.id] = currentCount + 1;
                                         localStorage.setItem(progressKey, JSON.stringify(progressCounts));
+                                        localStorage.setItem(legacyKey, JSON.stringify(Object.keys(progressCounts).map(Number)));
 
-                                        const legacyList = Object.keys(progressCounts);
-                                        localStorage.setItem(legacyKey, JSON.stringify(legacyList));
+                                        // Update Skills
+                                        const skillsKey = 'hechun_guest_skills';
+                                        const localSkills = localStorage.getItem(skillsKey);
+                                        const currentVector = localSkills ? JSON.parse(localSkills) : { reading: 0, writing: 0, speaking: 0, grammar: 0 };
 
-                                        if (lesson.skills_targeted && gainFactor > 0) {
-                                            const skillsKey = 'hechun_guest_skills';
-                                            const localSkills = localStorage.getItem(skillsKey);
-                                            const currentVector = localSkills ? JSON.parse(localSkills) : { reading: 10, writing: 10, speaking: 10 };
-                                            const targeted = lesson.skills_targeted;
-                                            const score = 1.0;
+                                        currentVector.reading = (currentVector.reading || 0) + 10;
+                                        currentVector.speaking = (currentVector.speaking || 0) + 10;
+                                        currentVector.writing = (currentVector.writing || 0) + 5;
 
-                                            for (const [skill, weight] of Object.entries(targeted as Record<string, number>)) {
-                                                const current = currentVector[skill] || 10;
-                                                const gain = weight * 10 * score * gainFactor;
-                                                currentVector[skill] = Math.round(current + gain);
-                                            }
-                                            localStorage.setItem(skillsKey, JSON.stringify(currentVector));
-                                        }
+                                        localStorage.setItem(skillsKey, JSON.stringify(currentVector));
 
-                                        // Prompt Login after 2 lessons
-                                        const completedCount = Object.keys(progressCounts).length;
-                                        if (completedCount >= 2) {
-                                            setShowLoginPrompt(true);
-                                            setSubmitting(false); // Stop submitting state so they can read modal
-                                            return; // Don't redirect yet
-                                        }
+                                        // Check Nudge (redundant here really if we unify behavior to just redirect)
+                                        // But for fallback button:
+                                        router.push('/');
                                     }
-                                    router.push('/');
-                                } catch (e) {
-                                    console.error(e);
-                                    router.push('/');
-                                }
+                                } catch (e) { router.push('/'); }
                             }}
                         >
                             {showSparkle ? 'Great Job!' : 'Complete Lesson'} <CheckCircle className="w-5 h-5" />
                         </button>
                     )}
                 </div>
-
-                {/* Login Prompt Modal */}
-                <AnimatePresence>
-                    {showLoginPrompt && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="bg-white dark:bg-slate-900 rounded-2xl p-8 max-w-md w-full shadow-2xl border border-white/20"
-                            >
-                                <div className="text-center mb-6">
-                                    <div className="mx-auto w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mb-4">
-                                        <Sparkles className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
-                                    </div>
-                                    <h2 className="text-2xl font-bold mb-2">You're on a roll! 🔥</h2>
-                                    <p className="text-slate-600 dark:text-slate-300">
-                                        You've completed 2 lessons! Create a free account to save your progress permanently and climb the leaderboard.
-                                    </p>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <button
-                                        onClick={() => router.push('/auth/register')}
-                                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors"
-                                    >
-                                        Create Account
-                                    </button>
-                                    <button
-                                        onClick={() => router.push('/auth/login')}
-                                        className="w-full py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-colors"
-                                    >
-                                        I have an account
-                                    </button>
-                                    <button
-                                        onClick={() => router.push('/')}
-                                        className="w-full py-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm font-medium transition-colors"
-                                    >
-                                        Continue as Guest
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
             </div>
         </Layout>
     );

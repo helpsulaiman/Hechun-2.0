@@ -5,8 +5,9 @@ import { useAudio } from '../../lib/hooks/useAudio';
 
 interface DialogueLine {
     speaker: string;
-    text: string;
-    meaning: string;
+    text: string; // Original Script (Kashmiri)
+    meaning: string; // Translation
+    transliteration?: string; // New
     audio?: string;
 }
 
@@ -15,22 +16,29 @@ interface DialogueLessonProps {
         type: 'dialogue';
         lines: DialogueLine[];
     };
+    showTransliteration?: boolean;
 }
 
-export default function DialogueLesson({ content }: DialogueLessonProps) {
+export default function DialogueLesson({ content, showTransliteration }: DialogueLessonProps) {
     return (
         <div className="space-y-8 max-w-2xl mx-auto">
             {content.lines.map((line, idx) => {
                 const isLeft = line.speaker === 'A';
                 return (
-                    <DialogueBubble key={idx} line={line} isLeft={isLeft} delay={idx * 0.2} />
+                    <DialogueBubble
+                        key={idx}
+                        line={line}
+                        isLeft={isLeft}
+                        delay={idx * 0.2}
+                        showTransliteration={showTransliteration}
+                    />
                 );
             })}
         </div>
     );
 }
 
-function DialogueBubble({ line, isLeft, delay }: { line: DialogueLine, isLeft: boolean, delay: number }) {
+function DialogueBubble({ line, isLeft, delay, showTransliteration }: { line: DialogueLine, isLeft: boolean, delay: number, showTransliteration?: boolean }) {
     const { play, status } = useAudio(line.audio);
 
     return (
@@ -53,6 +61,13 @@ function DialogueBubble({ line, isLeft, delay }: { line: DialogueLine, isLeft: b
                 onClick={() => play()}
             >
                 <div className="text-lg font-medium mb-1">{line.text}</div>
+
+                {showTransliteration && line.transliteration && (
+                    <div className="text-sm font-mono text-white/70 mb-1 italic">
+                        {line.transliteration}
+                    </div>
+                )}
+
                 <div className={`text-sm ${isLeft ? 'text-indigo-200' : 'text-gray-400'}`}>
                     {line.meaning}
                 </div>

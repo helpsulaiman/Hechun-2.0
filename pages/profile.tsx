@@ -357,6 +357,7 @@ const ProfilePage: React.FC = () => {
                         <SkillRadar
                             skills={skills}
                             size={350}
+                            max={100}
                         />
                         <div className="mt-2 text-center text-sm text-[var(--text-secondary)] max-w-xs mx-auto">
                             Your personalized skill vector based on recent lesson performance.
