@@ -7,7 +7,8 @@
     "dev:https": "next dev --experimental-https",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "npx ts-node scripts/ingest_basics.ts"
   },
   "dependencies": {
     "@gradio/client": "^2.0.0",
