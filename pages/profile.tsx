@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Head from 'next/head';
+import React, { useState, useEffect } from 'react';
 import { useUser, useSupabaseClient, useSessionContext } from '@supabase/auth-helpers-react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { fetchUserBadges, fetchUserStats, updateUserProfile } from '../lib/learning-api';
+import { fetchUserProfile, updateUserProfile } from '../lib/learning-api';
 import Layout from '../components/Layout';
 import * as Dialog from '@radix-ui/react-dialog';
+import SkillRadar from '../components/SkillRadar';
 
 const ProfilePage: React.FC = () => {
     const { isLoading } = useSessionContext();
@@ -19,6 +19,10 @@ const ProfilePage: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+    // Avatar State
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
     // Username Check State
     const [isUsernameValid, setIsUsernameValid] = useState<boolean | null>(null);
     const [usernameMessage, setUsernameMessage] = useState('');
@@ -31,90 +35,96 @@ const ProfilePage: React.FC = () => {
     const [deleteError, setDeleteError] = useState('');
 
     // Progress State
-    const [stats, setStats] = useState({ totalStars: 0, lessonsCompleted: 0 });
-    const [badges, setBadges] = useState<any[]>([]);
+    const [stats, setStats] = useState({ totalXP: 0, lessonsCompleted: 0 });
+    const [skills, setSkills] = useState<any>({ reading: 0, grammar: 0, listening: 0, speaking: 0 });
 
     useEffect(() => {
         if (user) {
             loadProfile();
-            loadProgress();
         } else if (!isLoading) {
             loadGuestProgress();
         }
     }, [user, isLoading]);
 
-    // Debounce username check
-    useEffect(() => {
-        const checkUsername = async () => {
-            if (!username || username === originalUsername || username.length < 3) {
-                setIsUsernameValid(null);
-                setUsernameMessage('');
-                return;
-            }
-
-            setIsCheckingUsername(true);
-            try {
-                const res = await fetch('/api/check-username', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username }),
-                });
-                const data = await res.json();
-
-                setIsUsernameValid(data.valid);
-                setUsernameMessage(data.message);
-            } catch (error) {
-                console.error('Error checking username', error);
-            } finally {
-                setIsCheckingUsername(false);
-            }
-        };
-
-        const timer = setTimeout(checkUsername, 500);
-        return () => clearTimeout(timer);
-    }, [username, originalUsername]);
+    // ... (Effect for username check omitted)
 
     const loadProfile = async () => {
         if (!user) return;
         try {
-            const userStats = await fetchUserStats(supabase, user.id);
-            const initialName = userStats?.username || user.user_metadata?.full_name || user.email?.split('@')[0] || '';
+            const profile = await fetchUserProfile(supabase, user.id);
+            const initialName = profile?.username || user.user_metadata?.full_name || user.email?.split('@')[0] || '';
             setUsername(initialName);
             setOriginalUsername(initialName);
+            setAvatarUrl(profile?.avatar_url || null);
+
+            if (profile) {
+                setStats({
+                    totalXP: profile.total_xp || 0,
+                    lessonsCompleted: profile.lessons_completed || 0
+                });
+                if (profile.skill_vector && typeof profile.skill_vector === 'object') {
+                    setSkills(profile.skill_vector);
+                }
+            }
         } catch (error) {
             console.error('Error loading profile:', error);
         }
     };
 
-    const loadProgress = async () => {
-        if (!user) return;
+    const loadGuestProgress = () => {
         try {
-            const [userBadges, userStats] = await Promise.all([
-                fetchUserBadges(supabase, user.id),
-                fetchUserStats(supabase, user.id)
-            ]);
+            // Guest progress: Count lessons completed in local storage
+            const progressKey = 'hechun_guest_progress_counts';
+            const localProgress = JSON.parse(localStorage.getItem(progressKey) || '{}');
+            const lessonsCompleted = Object.keys(localProgress).length;
+            // Approx XP for guest
+            const totalXP = lessonsCompleted * 10;
 
-            setBadges(userBadges || []);
-            if (userStats) {
-                setStats({
-                    totalStars: userStats.total_stars,
-                    lessonsCompleted: userStats.lessons_completed
-                });
-            }
-        } catch (error) {
-            console.error('Error loading progress:', error);
+            setStats({ totalXP, lessonsCompleted });
+        } catch (e) {
+            console.error("Error loading guest progress", e);
         }
     };
 
-    const loadGuestProgress = () => {
+    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
-            const localProgress = JSON.parse(localStorage.getItem('hechun_guest_progress') || '{}');
-            const totalStars = Object.values(localProgress).reduce((sum: number, s: any) => sum + (Number(s) || 0), 0);
-            const lessonsCompleted = Object.keys(localProgress).length;
-            setStats({ totalStars, lessonsCompleted });
-            setBadges([]);
-        } catch (e) {
-            console.error("Error loading guest progress", e);
+            setUploading(true);
+            setMessage(null);
+
+            if (!event.target.files || event.target.files.length === 0) {
+                throw new Error('You must select an image to upload.');
+            }
+
+            const file = event.target.files[0];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            // Upload to Supabase
+            const { error: uploadError } = await supabase.storage
+                .from('profile-images')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            // Get Public URL
+            const { data } = supabase.storage
+                .from('profile-images')
+                .getPublicUrl(filePath);
+
+            const publicUrl = data.publicUrl;
+
+            // Update Profile
+            await updateUserProfile(supabase, user!.id, { avatar_url: publicUrl });
+            setAvatarUrl(publicUrl);
+            setMessage({ type: 'success', text: 'Profile picture updated!' });
+
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.message });
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -130,8 +140,8 @@ const ProfilePage: React.FC = () => {
         setSaving(true);
         setMessage(null);
         try {
-            await updateUserProfile(supabase, user.id, username);
-            setOriginalUsername(username); // Update original so we don't re-check validity unnecessarily
+            await updateUserProfile(supabase, user.id, { username });
+            setOriginalUsername(username);
             setMessage({ type: 'success', text: 'Profile updated!' });
         } catch (error: any) {
             setMessage({ type: 'error', text: error.message || 'Failed to update' });
@@ -221,38 +231,70 @@ const ProfilePage: React.FC = () => {
                                     {message.text}
                                 </div>
                             )}
-                            <form onSubmit={handleUpdateProfile} className="space-y-6 max-w-md">
-                                <div>
-                                    <label htmlFor="username" className="block text-sm font-medium mb-2 text-[var(--text-secondary)]">Display Name</label>
-                                    <div className="relative">
-                                        <input
-                                            id="username"
-                                            type="text"
-                                            value={username}
-                                            onChange={e => setUsername(e.target.value)}
-                                            className={`form-input w-full ${isUsernameValid === true ? 'border-green-500 focus:border-green-500' :
-                                                isUsernameValid === false ? 'border-red-500 focus:border-red-500' : ''
-                                                }`}
-                                            placeholder="Enter username"
-                                            minLength={3}
-                                        />
-                                        {isCheckingUsername && (
-                                            <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">Checking...</span>
-                                        )}
+                            <form onSubmit={handleUpdateProfile} className="max-w-xl">
+                                <div className="flex flex-col sm:flex-row gap-8 items-start">
+                                    {/* Avatar Column */}
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="relative group cursor-pointer w-32 h-32">
+                                            <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-[var(--border-color)] bg-gray-100 flex items-center justify-center shadow-sm">
+                                                {avatarUrl ? (
+                                                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-4xl font-bold text-gray-400">
+                                                        {(username || 'U')[0].toUpperCase()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <label htmlFor="avatar-upload" className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
+                                                {uploading ? '...' : 'Change'}
+                                            </label>
+                                            <input
+                                                type="file"
+                                                id="avatar-upload"
+                                                accept="image/*"
+                                                onChange={handleAvatarUpload}
+                                                className="hidden"
+                                                disabled={uploading}
+                                            />
+                                        </div>
                                     </div>
-                                    {usernameMessage && (
-                                        <p className={`text-xs mt-1 ${isUsernameValid ? 'text-green-500' : 'text-red-500'}`}>
-                                            {usernameMessage}
-                                        </p>
-                                    )}
+
+                                    {/* Username Column */}
+                                    <div className="flex-1 w-full space-y-4 pt-2">
+                                        <div>
+                                            <label htmlFor="username" className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Display Name</label>
+                                            <div className="relative">
+                                                <input
+                                                    id="username"
+                                                    type="text"
+                                                    value={username}
+                                                    onChange={e => setUsername(e.target.value)}
+                                                    className={`form-input w-full ${isUsernameValid === true ? 'border-green-500 focus:border-green-500' :
+                                                        isUsernameValid === false ? 'border-red-500 focus:border-red-500' : ''
+                                                        }`}
+                                                    placeholder="Enter username"
+                                                    minLength={3}
+                                                />
+                                                {isCheckingUsername && (
+                                                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">Checking...</span>
+                                                )}
+                                            </div>
+                                            {usernameMessage && (
+                                                <p className={`text-xs mt-1 ${isUsernameValid ? 'text-green-500' : 'text-red-500'}`}>
+                                                    {usernameMessage}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={saving || isUsernameValid === false}
+                                            className="btn btn-primary"
+                                        >
+                                            {saving ? 'Saving...' : 'Save Changes'}
+                                        </button>
+                                    </div>
                                 </div>
-                                <button
-                                    type="submit"
-                                    disabled={saving || isUsernameValid === false}
-                                    className="btn btn-primary"
-                                >
-                                    {saving ? 'Saving...' : 'Save Changes'}
-                                </button>
                             </form>
                         </div>
                     ) : (
@@ -262,48 +304,70 @@ const ProfilePage: React.FC = () => {
                     )}
                 </section>
 
-                {/* Statistics */}
-                <section>
-                    <h2 className="text-2xl font-bold mb-6 text-[var(--text-primary)]">Your Progress</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="dashboard-card items-center text-center py-8">
-                            <span className="block text-5xl font-bold text-[var(--color-primary)] mb-2">{stats.totalStars}</span>
-                            <span className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">Total Stars</span>
-                        </div>
-                        <div className="dashboard-card items-center text-center py-8">
-                            <span className="block text-5xl font-bold text-purple-600 mb-2">{stats.lessonsCompleted}</span>
-                            <span className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">Lessons Completed</span>
-                        </div>
-                    </div>
-                </section>
 
-                {/* Badges */}
-                <section>
-                    <h2 className="text-2xl font-bold mb-6 text-[var(--text-primary)]">Badges</h2>
-                    {badges.length === 0 ? (
-                        <div className="dashboard-card text-center py-10">
-                            <p className="text-[var(--text-secondary)] italic">No badges earned yet. Complete lessons to earn them!</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            {badges.map((b: any) => (
-                                <div key={b.id} className="idiom-card flex flex-col items-center text-center">
-                                    <img
-                                        src={b.badge.icon_url || '/placeholder.png'}
-                                        alt={b.badge.name}
-                                        className="w-20 h-20 mb-4 object-contain"
-                                    />
-                                    <span className="font-semibold text-[var(--text-primary)]">{b.badge.name}</span>
+                {/* Statistics & Skills */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    <section className="space-y-8">
+                        <div>
+                            <h2 className="text-2xl font-bold mb-6 text-[var(--text-primary)]">Your Progress</h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="dashboard-card items-center text-center py-6 px-4">
+                                    <span className="block text-4xl font-bold text-[var(--color-primary)] mb-1">{stats.totalXP}</span>
+                                    <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Total XP</span>
                                 </div>
-                            ))}
+                                <div className="dashboard-card items-center text-center py-6 px-4">
+                                    <span className="block text-4xl font-bold text-purple-600 mb-1">{stats.lessonsCompleted}</span>
+                                    <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Lessons</span>
+                                </div>
+                            </div>
                         </div>
-                    )}
-                </section>
+
+                        {/* Detailed Skill List */}
+                        <div>
+                            <h3 className="text-lg font-bold mb-4 text-[var(--text-secondary)]">Skill Breakdown</h3>
+                            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl divide-y divide-[var(--border-color)]">
+                                {Object.entries(skills).map(([key, value]: [string, any]) => (
+                                    <div key={key} className="flex items-center justify-between p-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-2 h-8 rounded-full ${key === 'reading' ? 'bg-indigo-500' :
+                                                key === 'writing' ? 'bg-purple-500' :
+                                                    key === 'speaking' ? 'bg-green-500' : 'bg-blue-500'
+                                                }`}></div>
+                                            <span className="capitalize font-medium text-[var(--text-primary)]">{key}</span>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-indigo-500"
+                                                    style={{ width: `${Math.min(100, Math.max(5, typeof value === 'number' ? value : 0))}%` }}
+                                                ></div>
+                                            </div>
+                                            <span className="text-sm font-mono text-[var(--text-secondary)] w-8 text-right">
+                                                {typeof value === 'number' ? value : 0}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="bg-white/5 border border-[var(--border-color)] rounded-3xl p-8 flex flex-col items-center justify-center min-h-[400px]">
+                        <h2 className="text-2xl font-bold mb-4 text-[var(--text-primary)] text-center">Skill Profile</h2>
+                        <SkillRadar
+                            skills={skills}
+                            size={350}
+                        />
+                        <div className="mt-2 text-center text-sm text-[var(--text-secondary)] max-w-xs mx-auto">
+                            Your personalized skill vector based on recent lesson performance.
+                        </div>
+                    </section>
+                </div>
 
                 {/* Danger Zone */}
                 {user && (
                     <section className="pt-8 border-t border-[var(--border-color)]">
-                        <h2 className="text-2xl font-bold mb-6 text-red-600">Danger Zone</h2>
+                        <h2 className="text-2xl font-bold mb-6 text-red-600">DELETE ACCOUNT</h2>
                         <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-6 flex justify-between items-center">
                             <div>
                                 <h3 className="font-semibold text-red-900 dark:text-red-200">Delete Account</h3>

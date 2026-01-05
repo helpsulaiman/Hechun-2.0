@@ -1,10 +1,10 @@
 import React from 'react';
 import Layout from '../components/Layout';
 // Removed ChromaGrid
-import ThemeImage from '../components/ThemeImage';
-import SpotlightCard from '../components/SpotlightCard';
+import ThemeImage from '@/components/ThemeImage';
+import SpotlightCard from '@/components/SpotlightCard';
 import styles from '../styles/learn.module.css';
-import { TestimonialCarousel, Testimonial } from '../components/ui/profile-card-testimonial-carousel';
+import { TestimonialCarousel, Testimonial } from '@/components/ui/profile-card-testimonial-carousel';
 
 // Transform team data to match Testimonial interface
 const teamMembers: Testimonial[] = [

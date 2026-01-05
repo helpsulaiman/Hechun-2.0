@@ -59,8 +59,8 @@ const FeedbackButton: React.FC = () => {
                                 <a
                                     key={index}
                                     href={item.href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    target={item.href.startsWith('mailto:') ? undefined : "_blank"}
+                                    rel={item.href.startsWith('mailto:') ? undefined : "noopener noreferrer"}
                                     className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${item.color} hover:bg-opacity-50 dark:text-slate-200`}
                                     onClick={() => setIsOpen(false)}
                                 >

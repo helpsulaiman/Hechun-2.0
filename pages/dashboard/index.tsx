@@ -16,9 +16,9 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
     const supabase = createServerSupabaseClient(ctx);
     const { data: idioms } = await supabase.from('idioms').select('id', { count: 'exact' });
     const { data: suggestions } = await supabase.from('suggestions').select('id', { count: 'exact' });
-    const { count: lessonsCount } = await supabase.from('learning_lessons').select('*', { count: 'exact', head: true });
-    // Assuming 'user_stats' has one entry per user, it's a good proxy for user count
-    const { count: usersCount } = await supabase.from('user_stats').select('*', { count: 'exact', head: true });
+    const { count: lessonsCount } = await supabase.from('lessons').select('*', { count: 'exact', head: true });
+    // Using user_profiles as the source of truth
+    const { count: usersCount } = await supabase.from('user_profiles').select('*', { count: 'exact', head: true });
 
 
     return {

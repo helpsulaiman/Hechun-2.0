@@ -2,8 +2,8 @@ import React from 'react';
 import Layout from '../components/Layout';
 import Image from "next/image";
 import Link from "next/link";
-import ThemeImage from '../components/ThemeImage';
-import SpotlightCard from '../components/SpotlightCard';
+import ThemeImage from '@/components/ThemeImage';
+import SpotlightCard from '@/components/SpotlightCard';
 import styles from "@/styles/Alphabet.module.css";
 
 const AboutProjectPage: React.FC = () => {

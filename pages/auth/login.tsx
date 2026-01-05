@@ -40,7 +40,7 @@ const HechunLoginPage: React.FC = () => {
                 console.error("Migration failed", migrationError);
             }
 
-            router.push('/hechun');
+            router.push('/');
         } catch (err: any) {
             setError(err.message);
         } finally {

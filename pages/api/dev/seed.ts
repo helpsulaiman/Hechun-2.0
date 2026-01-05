@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../../lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (process.env.NODE_ENV === 'production') {
@@ -7,17 +8,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // 1. Cleanup
-        await prisma.lessonDependency.deleteMany({});
-        await prisma.lesson.deleteMany({});
+        console.log('Starting seed...');
 
-        // 2. Create Lessons
-        // Alphabet (Root) - Phonetic Grid
-        const alphabet = await prisma.lesson.create({
-            data: {
+        // 1. Cleanup: Delete lessons (this will cascade delete progress)
+        // Check if cleanup is requested via query param? default to yes for now
+        await prisma.lesson.deleteMany({});
+        console.log('Cleaned up existing lessons.');
+
+        // 2. Define Lessons Data
+        const lessonsData = [
+            {
+                id: 1,
+                lesson_order: 1,
                 title: 'The Kashmiri Alphabet',
                 description: 'Learn the core vowels and consonants of the Perso-Arabic script.',
-                complexity_score: 10,
+                complexity: 1.0,
                 skills_targeted: { reading: 1.0, speaking: 0.2 },
                 content: {
                     type: 'phonetic',
@@ -28,15 +33,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         { char: 'ت', name: 'Te', audio: '/audio/te.mp3' }
                     ]
                 },
-            }
-        });
-
-        // Greetings (Basic) - Dialogue
-        const greetings = await prisma.lesson.create({
-            data: {
+            },
+            {
+                id: 2,
+                lesson_order: 2,
                 title: 'Basic Greetings',
                 description: 'Saying hello and goodbye in Kashmiri.',
-                complexity_score: 15,
+                complexity: 1.5,
                 skills_targeted: { speaking: 0.8, listening: 0.8 },
                 content: {
                     type: 'dialogue',
@@ -46,15 +49,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         { speaker: 'A', text: 'Varay chhu?', meaning: 'Are you well?' }
                     ]
                 },
-            }
-        });
-
-        // Numbers (Basic) - List
-        const numbers = await prisma.lesson.create({
-            data: {
+            },
+            {
+                id: 3,
+                lesson_order: 3,
                 title: 'Numbers 1-10',
                 description: 'Counting in Kashmiri.',
-                complexity_score: 20,
+                complexity: 2.0,
                 skills_targeted: { speaking: 0.5, reading: 0.5 },
                 content: {
                     type: 'list',
@@ -64,15 +65,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         { text: 'Treh', meaning: 'Three' }
                     ]
                 },
-            }
-        });
-
-        // Sentences (Intermediate)
-        const introSentence = await prisma.lesson.create({
-            data: {
+            },
+            {
+                id: 4,
+                lesson_order: 4,
                 title: 'Introducing Yourself',
                 description: 'Constructing full sentences to say who you are.',
-                complexity_score: 35,
+                complexity: 3.5,
                 skills_targeted: { grammar: 0.6, speaking: 0.6 },
                 content: {
                     type: 'list',
@@ -82,29 +81,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     ]
                 },
             }
+        ];
+
+        // 3. Insert/Upsert Lessons
+        for (const lesson of lessonsData) {
+            await prisma.lesson.upsert({
+                where: { id: lesson.id },
+                update: {
+                    lesson_order: lesson.lesson_order,
+                    title: lesson.title,
+                    description: lesson.description,
+                    complexity: lesson.complexity,
+                    skills_targeted: lesson.skills_targeted as Prisma.JsonObject,
+                    content: lesson.content as Prisma.JsonObject,
+                },
+                create: {
+                    id: lesson.id,
+                    lesson_order: lesson.lesson_order,
+                    title: lesson.title,
+                    description: lesson.description,
+                    complexity: lesson.complexity,
+                    skills_targeted: lesson.skills_targeted as Prisma.JsonObject,
+                    content: lesson.content as Prisma.JsonObject,
+                }
+            });
+            console.log(`Seeded lesson: ${lesson.title}`);
+        }
+
+        return res.status(200).json({ success: true, message: 'Database seeded successfully.' });
+
+    } catch (error: any) {
+        console.error('Seed Error:', error);
+        // Return explicit error message to the client
+        return res.status(500).json({
+            error: 'Failed to seed',
+            details: error.message || error.toString(),
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
-
-        // 3. Create Dependencies
-        // Greetings needs Alphabet (loosely, or maybe not? Let's say yes for graph testing)
-        await prisma.lessonDependency.create({
-            data: {
-                lesson_id: greetings.id,
-                prerequisite_id: alphabet.id
-            }
-        });
-
-        // Intro needs Greetings
-        await prisma.lessonDependency.create({
-            data: {
-                lesson_id: introSentence.id,
-                prerequisite_id: greetings.id
-            }
-        });
-
-        return res.status(200).json({ success: true, message: 'Database seeded with curriculum graph.' });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Failed to seed' });
     }
 }

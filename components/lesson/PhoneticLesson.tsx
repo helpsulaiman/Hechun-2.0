@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Volume2 } from 'lucide-react';
+import { Volume2, AlertCircle } from 'lucide-react';
+import { useAudio } from '../../lib/hooks/useAudio';
 
 interface PhoneticItem {
     char: string;
@@ -28,23 +29,36 @@ export default function PhoneticLesson({ content, onComplete }: PhoneticLessonPr
         <div className="space-y-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {content.letters.map((item, idx) => (
-                    <motion.button
-                        key={idx}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => playAudio(item.audio)}
-                        className="aspect-square bg-indigo-500/10 border-2 border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center p-4 hover:bg-indigo-500/20 hover:border-indigo-500/50 transition-colors group"
-                    >
-                        <span className="text-8xl mb-4 font-bold text-white text-kashmiri">{item.char}</span>
-                        <span className="text-indigo-300 font-medium">{item.name}</span>
-                        <Volume2 className="w-5 h-5 mt-4 text-indigo-400 opacity-50 group-hover:opacity-100" />
-                    </motion.button>
+                    <PhoneticCard key={idx} item={item} />
                 ))}
             </div>
 
             <div className="text-center text-gray-400 text-sm">
-                Click each letter to hear its pronunciation.
+                Click the speaker icon to hear pronunciation.
             </div>
         </div>
+    );
+}
+
+function PhoneticCard({ item }: { item: PhoneticItem }) {
+    const { play, status } = useAudio(item.audio);
+
+    return (
+        <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => play()}
+            className={`
+                aspect-square bg-indigo-500/10 border-2 border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center p-4 transition-colors group relative overflow-hidden
+                ${status === 'playing' ? 'border-indigo-500 bg-indigo-500/20' : 'hover:bg-indigo-500/20 hover:border-indigo-500/50'}
+                ${status === 'error' ? 'border-red-500/30' : ''}
+            `}
+        >
+            <span className="text-8xl mb-4 font-bold text-white text-kashmiri">{item.char}</span>
+            <span className="text-indigo-300 font-medium">{item.name}</span>
+            <div className={`mt-4 ${status === 'playing' ? 'text-indigo-400 animate-pulse' : 'text-indigo-400 opacity-50 group-hover:opacity-100'}`}>
+                {status === 'error' ? <AlertCircle className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
+            </div>
+        </motion.button>
     );
 }

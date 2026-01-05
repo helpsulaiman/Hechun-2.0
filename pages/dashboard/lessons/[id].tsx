@@ -7,13 +7,22 @@ import { fetchLessonWithSteps } from '../../../lib/learning-api';
 import { LearningLesson, LessonStep } from '../../../types/learning';
 import Link from 'next/link';
 
+// Local interface for editing state, looser than the strict schema
+interface EditableStep {
+    id?: number;
+    lesson_id?: number;
+    step_type: string;
+    step_order?: number;
+    content: any;
+}
+
 const EditLessonPage: React.FC = () => {
     const router = useRouter();
     const { id } = router.query;
     const supabase = useSupabaseClient();
 
     const [lesson, setLesson] = useState<Partial<LearningLesson>>({});
-    const [steps, setSteps] = useState<Partial<LessonStep>[]>([]);
+    const [steps, setSteps] = useState<EditableStep[]>([]);
     const [deletedStepIds, setDeletedStepIds] = useState<number[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -30,7 +39,13 @@ const EditLessonPage: React.FC = () => {
             setLoading(true);
             const { lesson, steps } = await fetchLessonWithSteps(supabase, lessonId);
             setLesson(lesson);
-            setSteps(steps);
+            // Map strict steps to editable format
+            setSteps(steps.map((s: any, i) => ({
+                id: i, // distinct index as ID for now since we don't have real IDs in JSON yet
+                step_type: s.type || 'teach',
+                content: s.content,
+                step_order: i + 1
+            })));
         } catch (error) {
             console.error('Error loading lesson:', error);
             setMessage({ type: 'error', text: 'Failed to load lesson' });
@@ -70,15 +85,13 @@ const EditLessonPage: React.FC = () => {
         }, null, 2)
     };
 
-    const handleStepChange = (index: number, field: keyof LessonStep, value: any) => {
+    const handleStepChange = (index: number, field: string, value: any) => {
         const newSteps = [...steps];
+        // @ts-ignore - Dynamic field access
         let updatedStep = { ...newSteps[index], [field]: value };
 
         // Auto-fill template if type changes
         if (field === 'step_type' && STEP_TEMPLATES[value as string]) {
-            // Only overwrite if it looks like a default empty object or another template? 
-            // For "easiness", let's just do it. The user can always Undo if we had undo, but we don't.
-            // Let's assume if they change type, they want the new schema.
             updatedStep.content = STEP_TEMPLATES[value as string];
         }
 
@@ -122,30 +135,7 @@ const EditLessonPage: React.FC = () => {
         setSaving(true);
         setMessage(null);
         try {
-            // 1. Update Lesson Metadata
-            const { error: lessonError } = await supabase
-                .from('learning_lessons')
-                .update({
-                    title: lesson.title,
-                    description: lesson.description,
-                    xp_reward: lesson.xp_reward,
-                    level_id: lesson.level_id
-                    // other fields..
-                })
-                .eq('id', lesson.id);
-
-            if (lessonError) throw lessonError;
-
-            // 2. Delete removed steps
-            if (deletedStepIds.length > 0) {
-                const { error: deleteError } = await supabase
-                    .from('lesson_steps')
-                    .delete()
-                    .in('id', deletedStepIds);
-                if (deleteError) throw deleteError;
-            }
-
-            // 3. Prepare steps
+            // 1. Prepare Content JSON
             const preparedSteps = steps.map((s, index) => {
                 let content = s.content;
                 // Parse JSON content if it's a string (from textarea)
@@ -157,35 +147,35 @@ const EditLessonPage: React.FC = () => {
                     }
                 }
 
+                // Ensure the step has the correct structure for the JSON
                 return {
-                    ...s,
-                    lesson_id: lesson.id, // Ensure lesson_id is set
-                    step_order: index + 1 // Enforce order based on list position
+                    type: s.step_type || 'teach', // Use the state's step_type
+                    content: content
                 };
             });
 
-            // Split into updates (existing IDs) and inserts (new)
-            const stepsToUpdate = preparedSteps.filter(s => s.id);
-            const stepsToInsert = preparedSteps.filter(s => !s.id).map(({ id, ...rest }) => rest); // Remove id property typically undefined
+            const lessonContent = {
+                type: 'structured',
+                steps: preparedSteps
+            };
 
-            // Update existing
-            if (stepsToUpdate.length > 0) {
-                const { error: updateError } = await supabase
-                    .from('lesson_steps')
-                    .upsert(stepsToUpdate);
-                if (updateError) throw updateError;
-            }
+            // 2. Update Lesson in DB
+            const { error: lessonError } = await supabase
+                .from('lessons') // Correct table name
+                .update({
+                    title: lesson.title,
+                    description: lesson.description,
+                    xp_reward: lesson.xp_reward,
+                    // content: lessonContent -- disabling content update for now if we want to be safe, but actually we WANT to update it.
+                    content: lessonContent,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', lesson.id);
 
-            // Insert new
-            if (stepsToInsert.length > 0) {
-                const { error: insertError } = await supabase
-                    .from('lesson_steps')
-                    .insert(stepsToInsert);
-                if (insertError) throw insertError;
-            }
+            if (lessonError) throw lessonError;
 
             setMessage({ type: 'success', text: 'Lesson saved successfully!' });
-            // Reload to get fresh IDs for new steps
+            // Reload
             if (lesson.id) loadLesson(lesson.id);
             setDeletedStepIds([]);
 
@@ -194,6 +184,7 @@ const EditLessonPage: React.FC = () => {
             setMessage({ type: 'error', text: error.message || 'Failed to save' });
         } finally {
             setSaving(false);
+            // setDeletedStepIds([]); // No longer needed
         }
     };
 
@@ -259,12 +250,13 @@ const EditLessonPage: React.FC = () => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium mb-1 text-muted-foreground">Level ID</label>
+                                        <label className="block text-sm font-medium mb-1 text-muted-foreground">Complexity Score</label>
                                         <input
                                             type="number"
+                                            step="0.1"
                                             className="form-input w-full bg-background border-border text-foreground"
-                                            value={lesson.level_id || ''}
-                                            onChange={e => handleLessonChange('level_id', parseInt(e.target.value))}
+                                            value={lesson.complexity || 1.0}
+                                            onChange={e => handleLessonChange('complexity', parseFloat(e.target.value))}
                                         />
                                     </div>
                                     <div>

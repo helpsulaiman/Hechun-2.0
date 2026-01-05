@@ -23,7 +23,6 @@ interface DashboardLayoutProps {
 
 const navItems = [
     { href: '/dashboard', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" /> },
-    { href: '/dashboard/alphabet', label: 'Manage Alphabet', icon: <Languages className="w-5 h-5 flex-shrink-0" /> },
     { href: '/dashboard/lessons', label: 'Manage Lessons', icon: <GraduationCap className="w-5 h-5 flex-shrink-0" /> },
     { href: '/dashboard/users', label: 'Manage Users', icon: <Users className="w-5 h-5 flex-shrink-0" /> },
 ];

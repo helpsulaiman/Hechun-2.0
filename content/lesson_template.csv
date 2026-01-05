@@ -1,0 +1,7 @@
+lesson_order,lesson_title,lesson_description,complexity,type,item_key,item_text,item_extra
+1,The Kashmiri Alphabet,Learn the core vowels and consonants,1,phonetic,ا,Alif,/audio/alif.mp3
+1,The Kashmiri Alphabet,Learn the core vowels and consonants,1,phonetic,ب,B_,/audio/be.mp3
+2,Basic Greetings,Saying hello and goodbye,1.5,dialogue,A,Assalamu Alaikum,Peace be upon you
+2,Basic Greetings,Saying hello and goodbye,1.5,dialogue,B,Walaikum Assalam,And upon you peace
+3,Numbers 1-10,Counting in Kashmiri,2,list,1,Akh,One
+3,Numbers 1-10,Counting in Kashmiri,2,list,2,Ze,Two

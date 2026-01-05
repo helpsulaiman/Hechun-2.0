@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Check admin status
     const { data: currentUser } = await supabase
-        .from('user_stats')
+        .from('user_profiles')
         .select('is_admin')
         .eq('user_id', session.user.id)
         .single();
@@ -27,9 +27,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { search } = req.query;
 
         let query = supabase
-            .from('user_stats')
-            .select('user_id, username, total_stars, lessons_completed, is_admin, last_activity_date, updated_at')
-            .order('updated_at', { ascending: false });
+            .from('user_profiles')
+            .select('user_id, username, total_xp, lessons_completed, is_admin, streak_days, last_active_date, updated_at')
+            .order('last_active_date', { ascending: false });
 
         if (search && typeof search === 'string' && search.trim()) {
             query = query.ilike('username', `%${search.trim()}%`);
@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const { error } = await supabase
-            .from('user_stats')
+            .from('user_profiles')
             .update({ is_admin })
             .eq('user_id', user_id);
 

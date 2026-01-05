@@ -3,13 +3,31 @@ import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
 import Layout from '../components/Layout';
 import ThemeImage from '../components/ThemeImage';
 import { fetchLeaderboard } from '../lib/learning-api';
+import { UserProfile } from '../types/learning';
+import { GetStaticProps } from 'next';
+import { createClient } from '@supabase/supabase-js';
 
-import { UserStats } from '../types/learning';
+export const getStaticProps: GetStaticProps = async () => {
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-const LeaderboardPage: React.FC = () => {
+    // Fetch leaderboard
+    const allTimeLeaderboard = await fetchLeaderboard(supabase, 'all_time');
+
+    return {
+        props: {
+            initialLeaderboard: allTimeLeaderboard,
+        },
+        revalidate: 60, // Revalidate every minute
+    };
+};
+
+const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ initialLeaderboard }) => {
     const supabase = useSupabaseClient();
     const user = useUser();
-    const [users, setUsers] = useState<UserStats[]>([]);
+    const [users, setUsers] = useState<UserProfile[]>(initialLeaderboard);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState<'daily' | 'weekly' | 'all_time'>('all_time');
     const [error, setError] = useState<string | null>(null);
@@ -19,7 +37,7 @@ const LeaderboardPage: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await fetchLeaderboard(supabase, period, user?.id);
+                const data = await fetchLeaderboard(supabase, period);
                 setUsers(data);
             } catch (err: any) {
                 console.error('Failed to load leaderboard:', err);
@@ -47,7 +65,6 @@ const LeaderboardPage: React.FC = () => {
     return (
         <Layout title="Leaderboard - Hechun">
             <div className="max-w-3xl mx-auto px-4 py-8">
-                {/* ... */}
                 <div className="text-center mb-10">
                     <div className="flex justify-center mb-4">
                         <ThemeImage
@@ -64,8 +81,6 @@ const LeaderboardPage: React.FC = () => {
                     <p className="text-gray-600 dark:text-gray-300">
                         See who&apos;s mastering Kashmiri the fastest!
                     </p>
-
-
                 </div>
 
                 {/* Period Selector */}
@@ -104,7 +119,7 @@ const LeaderboardPage: React.FC = () => {
                             // Calculate ranks with tie handling
                             let currentRank = 1;
                             const usersWithRank = users.map((u, i) => {
-                                if (i > 0 && u.total_stars < users[i - 1].total_stars) {
+                                if (i > 0 && u.total_xp < users[i - 1].total_xp) {
                                     currentRank = i + 1;
                                 }
                                 return { ...u, rank: currentRank };
@@ -123,8 +138,8 @@ const LeaderboardPage: React.FC = () => {
                                                     <h2 className="text-3xl font-bold">#{currentUser.rank}</h2>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-indigo-100 font-medium mb-1">Total Stars</p>
-                                                    <p className="text-2xl font-bold">{currentUser.total_stars} ★</p>
+                                                    <p className="text-indigo-100 font-medium mb-1">Total XP</p>
+                                                    <p className="text-2xl font-bold">{currentUser.total_xp} XP</p>
                                                 </div>
                                                 <div className="text-right hidden sm:block">
                                                     <p className="text-indigo-100 font-medium mb-1">Lessons</p>
@@ -170,15 +185,24 @@ const LeaderboardPage: React.FC = () => {
                                             <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Rank</th>
                                             <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
                                             <th className="hidden sm:table-cell px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Lessons</th>
-                                            <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Stars</th>
+                                            <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">XP/Streak</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                         {(() => {
+                                            // Sort based on period. If All Time, use XP. If Daily/Weekly, use Streak (for now).
+                                            const sortedUsers = [...users].sort((a, b) => {
+                                                if (period === 'all_time') return b.total_xp - a.total_xp;
+                                                return b.streak_days - a.streak_days;
+                                            });
+
                                             let currentRank = 1;
-                                            return users.map((item, index) => {
-                                                // Update rank only if stars are different from previous user
-                                                if (index > 0 && item.total_stars < users[index - 1].total_stars) {
+
+                                            return sortedUsers.map((item, index) => {
+                                                const itemValue = period === 'all_time' ? item.total_xp : item.streak_days;
+                                                const prevValue = index > 0 ? (period === 'all_time' ? sortedUsers[index - 1].total_xp : sortedUsers[index - 1].streak_days) : 0;
+
+                                                if (index > 0 && itemValue < prevValue) {
                                                     currentRank = index + 1;
                                                 }
 
@@ -189,25 +213,36 @@ const LeaderboardPage: React.FC = () => {
                                                     >
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <div className={`
-                              w-8 h-8 flex items-center justify-center rounded-full font-bold
-                              ${currentRank === 1 ? 'bg-yellow-100 text-yellow-700' :
+                                                              w-8 h-8 flex items-center justify-center rounded-full font-bold
+                                                              ${currentRank === 1 ? 'bg-yellow-100 text-yellow-700' :
                                                                     currentRank === 2 ? 'bg-gray-100 text-gray-700' :
                                                                         currentRank === 3 ? 'bg-orange-100 text-orange-700' : 'text-gray-500'}
-                            `}>
+                                                            `}>
                                                                 {currentRank}
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                                                                {item.username || `Learner #${index + 1}`}
-                                                                {item.user_id === user?.id && <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">You</span>}
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-100 flex-shrink-0">
+                                                                    {item.avatar_url ? (
+                                                                        <img src={item.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-400">
+                                                                            {(item.username || 'U')[0].toUpperCase()}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="font-medium text-gray-900 dark:text-gray-100">
+                                                                    {item.username || `Learner #${index + 1}`}
+                                                                    {item.user_id === user?.id && <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">You</span>}
+                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-right text-gray-500">
                                                             {item.lessons_completed}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-yellow-600 dark:text-yellow-400">
-                                                            {item.total_stars} ★
+                                                        <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-orange-500">
+                                                            {period === 'all_time' ? `${item.total_xp} XP` : `${item.streak_days} Days 🔥`}
                                                         </td>
                                                     </tr>
                                                 );

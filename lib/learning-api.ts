@@ -1,546 +1,252 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import {
+    LearningLesson,
+    LessonStep,
+    UserProfile
+} from '../types/learning';
+
 export class ApiError extends Error {
     constructor(message: string, public statusCode?: number) {
         super(message);
         this.name = 'ApiError';
     }
 }
-import {
-    LearningLevel,
-    LearningLesson,
-    LessonStep,
-    UserProgress,
-    UserStats,
-    Badge
-} from '../types/learning';
 
-// --- LEVELS & LESSONS ---
+// --- LESSONS (FLAT LIST) ---
 
-export async function fetchLevelsWithLessons(supabase: SupabaseClient, userId?: string): Promise<LearningLevel[]> {
+export async function fetchLessons(supabase: SupabaseClient, userId?: string): Promise<LearningLesson[]> {
     try {
-        // 1. Fetch all levels
-        const { data: levels, error: levelsError } = await supabase
-            .from('learning_levels')
+        // Fetch All Lessons (Sorted by defined order)
+        const { data: lessons, error: lessonsError } = await supabase
+            .from('lessons')
             .select('*')
-            .order('level_order', { ascending: true });
+            .order('lesson_order', { ascending: true });
 
-        if (levelsError) throw new ApiError(`Failed to fetch levels: ${levelsError.message}`);
-        if (!levels) return [];
+        if (lessonsError) throw new ApiError(`Failed to fetch lessons: ${lessonsError.message}`);
+        if (!lessons) return [];
 
-        // 2. Fetch user stats to check total stars (for unlocking levels)
-        let totalStars = 0;
-        if (userId) {
-            const { data: stats } = await supabase
-                .from('user_stats')
-                .select('total_stars')
-                .eq('user_id', userId)
-                .single();
-            totalStars = stats?.total_stars || 0;
-        }
-
-        // 3. For each level, fetch lessons and attach lock status
-        const levelsWithLessons = await Promise.all(levels.map(async (level) => {
-            const { data: lessons, error: lessonsError } = await supabase
-                .from('learning_lessons')
-                .select('*')
-                .eq('level_id', level.id)
-                .order('lesson_order', { ascending: true });
-
-            if (lessonsError) throw new ApiError(`Failed to fetch lessons for level ${level.id}: ${lessonsError.message}`);
-
-            // Attach user progress if logged in OR check localStorage for guest
-            let lessonsWithProgress = lessons || [];
-            if (userId) {
-                const { data: progress } = await supabase
-                    .from('user_progress')
-                    .select('lesson_id, stars')
-                    .eq('user_id', userId);
-
-                lessonsWithProgress = lessonsWithProgress.map(lesson => {
-                    const p = progress?.find(p => p.lesson_id === lesson.id);
-                    return {
-                        ...lesson,
-                        user_stars: p?.stars || 0,
-                        is_locked: false // We'll calculate this logic in the UI or here
-                    };
-                });
-            } else if (typeof window !== 'undefined') {
-                // Guest mode: Read from localStorage
-                try {
-                    const localProgress = JSON.parse(localStorage.getItem('hechun_guest_progress') || '{}');
-                    lessonsWithProgress = lessonsWithProgress.map(lesson => {
-                        const stars = localProgress[lesson.id] || 0;
-                        return {
-                            ...lesson,
-                            user_stars: stars,
-                            is_locked: false
-                        };
-                    });
-
-                    // Calculate total stars for guest to unlock levels
-                    totalStars = Object.values(localProgress).reduce((sum: number, stars: any) => sum + (Number(stars) || 0), 0);
-                } catch (e) {
-                    console.error('Error reading guest progress', e);
-                }
-            }
-
-            // Determine if level is locked based on stars
-            const isLevelLocked = totalStars < level.min_stars_required;
-
-            return {
-                ...level,
-                lessons: lessonsWithProgress,
-                is_locked: isLevelLocked
-            };
+        const hydratedLessons = (lessons as LearningLesson[]).map(lesson => ({
+            ...lesson,
+            user_score: 0,
+            is_locked: false // Default to unlocked, logic applied below
         }));
 
-        return levelsWithLessons;
+        // Hydrate with User Progress
+        if (userId) {
+            const { data: progress } = await supabase
+                .from('lesson_progress')
+                .select('lesson_id, score')
+                .eq('user_id', userId);
+
+            const progressMap = new Map(progress?.map((p: any) => [p.lesson_id, p.score]));
+
+            // Logic: Unlock next lesson if previous is completed (score > 0)
+            // First lesson is always unlocked
+            let previousCompleted = true; // Start true for the first one
+
+            hydratedLessons.forEach((l, index) => {
+                l.user_score = progressMap.get(l.id) || 0;
+
+                // Unlock logic: 
+                // If it's the first lesson, it's unlocked.
+                // Otherwise, it's unlocked only if the PREVIOUS lesson has a score > 0.6 (Passing grade?)
+                if (index === 0) {
+                    l.is_locked = false;
+                } else {
+                    l.is_locked = !previousCompleted;
+                }
+
+                // Update tracker for next iteration
+                previousCompleted = (l.user_score || 0) >= 0.6; // Threshold for "complete"
+            });
+        }
+
+        return hydratedLessons;
+
     } catch (error) {
-        console.error('Error fetching learning path:', error);
+        console.error('Fetch Lessons Error:', error);
         throw error instanceof ApiError ? error : new ApiError('Failed to fetch learning path');
     }
 }
 
 export async function fetchLessonWithSteps(supabase: SupabaseClient, lessonId: number): Promise<{ lesson: LearningLesson, steps: LessonStep[] }> {
     try {
-        // Fetch lesson details
-        const { data: lesson, error: lessonError } = await supabase
-            .from('learning_lessons')
+        const { data: lesson, error } = await supabase
+            .from('lessons')
             .select('*')
             .eq('id', lessonId)
             .single();
 
-        if (lessonError) throw new ApiError(`Failed to fetch lesson: ${lessonError.message}`);
+        if (error) throw new ApiError(error.message);
 
-        // Fetch steps
-        const { data: steps, error: stepsError } = await supabase
-            .from('lesson_steps')
-            .select('*')
-            .eq('lesson_id', lessonId)
-            .order('step_order', { ascending: true });
-
-        if (stepsError) throw new ApiError(`Failed to fetch steps: ${stepsError.message}`);
-
-        // Parse content if it's a string (defensive coding against double-encoding)
-        const parsedSteps = (steps || []).map(step => {
-            if (typeof step.content === 'string') {
-                try {
-                    return { ...step, content: JSON.parse(step.content) };
-                } catch (e) {
-                    console.error(`Failed to parse step content for step ${step.id}:`, e);
-                    return step;
-                }
-            }
-            return step;
-        });
-
-        return { lesson, steps: parsedSteps };
-    } catch (error) {
-        console.error('Error fetching lesson content:', error);
-        throw error instanceof ApiError ? error : new ApiError('Failed to fetch lesson content');
-    }
-}
-// --- USER PROFILE ---
-
-export async function updateUserProfile(supabase: SupabaseClient, userId: string, username: string): Promise<void> {
-    try {
-        // Update user_stats with new username
-        const { error } = await supabase
-            .from('user_stats')
-            .upsert({
-                user_id: userId,
-                username: username,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id' });
-
-        if (error) throw new ApiError(`Failed to update profile: ${error.message}`);
-
-        // Also update auth metadata for consistency if needed
-        await supabase.auth.updateUser({
-            data: { full_name: username }
-        });
-
-    } catch (error) {
-        console.error('Error updating profile:', error);
-        throw error instanceof ApiError ? error : new ApiError('Failed to update profile');
-    }
-}
-
-export async function fetchUserStats(supabase: SupabaseClient, userId: string): Promise<UserStats | null> {
-    try {
-        const { data, error } = await supabase
-            .from('user_stats')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-        if (error) {
-            if (error.code === 'PGRST116') return null; // Not found
-            throw new ApiError(`Failed to fetch stats: ${error.message}`);
+        // Parse content
+        let steps: LessonStep[] = [];
+        if (lesson.content && typeof lesson.content === 'object' && lesson.content.type === 'structured') {
+            steps = lesson.content.steps || [];
+        } else if (typeof lesson.content === 'string') {
+            try {
+                const json = JSON.parse(lesson.content);
+                if (json.type === 'structured') steps = json.steps;
+            } catch (e) { }
         }
-        return data;
+
+        return { lesson, steps };
     } catch (error) {
-        console.error('Error fetching user stats:', error);
+        throw new ApiError('Failed to load lesson content');
+    }
+}
+
+// --- USER & LEADERBOARD ---
+
+export async function updateUserProfile(supabase: SupabaseClient, userId: string, updates: Partial<UserProfile>): Promise<void> {
+    const { error } = await supabase
+        .from('user_profiles')
+        .update(updates)
+        .eq('user_id', userId);
+
+    if (error) throw new ApiError(error.message);
+
+}
+
+export async function fetchUserProfile(supabase: SupabaseClient, userId: string): Promise<UserProfile | null> {
+    const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+    if (error) {
+        console.error('Error fetching user profile:', error);
         return null;
     }
+    return data;
 }
 
-// --- PROGRESS & STATS ---
+export async function fetchLeaderboard(supabase: SupabaseClient, period: 'daily' | 'weekly' | 'all_time' = 'all_time'): Promise<UserProfile[]> {
+    // Optimized: Sort by XP or Lessons Completed
+    const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('total_xp', { ascending: false }) // XP is the new metric
+        .limit(50);
 
-export async function submitLessonProgress(supabase: SupabaseClient, userId: string | undefined, lessonId: number, stars: number): Promise<Badge | null> {
-    try {
-        if (!userId) {
-            console.log('Submitting guest progress for lesson', lessonId, 'stars', stars);
-            // Guest mode: Save to localStorage
-            if (typeof window !== 'undefined') {
-                const localProgress = JSON.parse(localStorage.getItem('hechun_guest_progress') || '{}');
-                // Only update if new stars are higher or it's a new entry
-                if ((localProgress[lessonId] || 0) < stars) {
-                    localProgress[lessonId] = stars;
-                    localStorage.setItem('hechun_guest_progress', JSON.stringify(localProgress));
-                    console.log('Guest progress saved to localStorage');
-                }
-            }
-            return null;
-        }
+    if (error) throw new ApiError(error.message);
+    return data || [];
+}
 
-        // Verify auth state inside the function
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+// --- PROGRESS ---
 
-        if (authUser?.id !== userId) {
-            // Auth mismatch - this shouldn't happen in normal flow
-        }
+export async function submitLessonProgress(supabase: SupabaseClient, userId: string, lessonId: number, score: number): Promise<void> {
+    if (!userId) return;
 
-        // 1. Upsert user_progress
-        const { data: progressData, error: progressError } = await supabase
-            .from('user_progress')
-            .upsert({
-                user_id: userId,
-                lesson_id: lessonId,
-                stars: stars,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id, lesson_id' })
-            .select();
+    // 1. Fetch Lesson Metadata (XP Reward & targeted skills)
+    const { data: lesson, error: lessonError } = await supabase
+        .from('lessons')
+        .select('xp_reward, skills_targeted, complexity')
+        .eq('id', lessonId)
+        .single();
 
-        if (progressError) {
-            console.error('Supabase WRITE ERROR:', JSON.stringify(progressError, null, 2));
-            throw new ApiError(`Failed to save progress: ${progressError.message}`);
-        }
+    if (lessonError) console.error('Error fetching lesson meta:', lessonError);
 
-        // Progress saved successfully
+    // 2. Upsert Lesson Progress
+    const { error: progressError } = await supabase
+        .from('lesson_progress')
+        .upsert({
+            user_id: userId,
+            lesson_id: lessonId,
+            score: score,
+            completed_at: new Date().toISOString()
+        }, { onConflict: 'user_id, lesson_id' });
 
-        // 2. Update user_stats (re-calculate totals)
-        // Fetch all progress for this user to calculate total stars
-        const { data: allProgress, error: fetchProgressError } = await supabase
-            .from('user_progress')
-            .select('stars')
-            .eq('user_id', userId);
+    if (progressError) throw new ApiError(progressError.message);
 
-        if (fetchProgressError) {
-            console.error('Error fetching all progress:', fetchProgressError);
-            // Don't throw, just log. We still saved the current lesson progress.
-        } else {
-            const totalStars = allProgress?.reduce((sum, p) => sum + p.stars, 0) || 0;
-            const lessonsCompleted = allProgress?.filter(p => p.stars > 0).length || 0;
+    // 3. Recalculate User Stats
+    // A. Fetch current profile for skills
+    const userProfile = await fetchUserProfile(supabase, userId);
+    let currentSkills: Record<string, number> = (userProfile?.skill_vector as Record<string, number>) || { reading: 10, writing: 10, speaking: 10, listening: 10 };
 
-            const { error: statsError } = await supabase
-                .from('user_stats')
-                .upsert({
-                    user_id: userId,
-                    total_stars: totalStars,
-                    lessons_completed: lessonsCompleted,
-                    last_activity_date: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                });
+    // B. Update Skills if lesson has targets and score is good
+    if (lesson?.skills_targeted && score > 0) {
+        const targets = lesson.skills_targeted as Record<string, number>; // e.g. { reading: 1.0 }
 
-            if (statsError) {
-                console.error('Failed to update stats:', statsError);
-                // Don't throw, as the primary action (saving lesson progress) succeeded
-            }
-        }
+        // Logic: Skill += (TargetWeight * Complexity * Score * Multiplier)
+        // Example: 1.0 * 1.5 (Complexity) * 0.9 (Score) * 5 (Base gain) = +6.75
+        const BASE_GAIN = 5;
 
-        // 3. Check for badges
-        const earnedBadge = await checkAndAwardBadges(supabase, userId, lessonId);
-        return earnedBadge;
-
-    } catch (error) {
-        console.error('Error submitting progress:', error);
-        throw error instanceof ApiError ? error : new ApiError('Failed to submit progress');
+        Object.entries(targets).forEach(([skill, weight]) => {
+            const current = currentSkills[skill] || 10;
+            const gain = (weight as number) * (lesson.complexity || 1) * score * BASE_GAIN;
+            currentSkills[skill] = Math.min(100, Math.round(current + gain)); // Cap at 100?
+        });
     }
+
+    // C. Calculate Total XP & Completed Count
+    const { data: allProgress } = await supabase
+        .from('lesson_progress')
+        .select('score') // removed lesson_id join for now to save query complexity, we'll just sum heuristic or simple count
+        .eq('user_id', userId);
+
+    const lessonsCompleted = allProgress?.filter((p: any) => p.score >= 0.6).length || 0;
+
+    // For XP, we should ideally sum actual rewards, but that requires a join. 
+    // For now, let's update XP incrementally? 
+    // Or just use the heuristic logic to keep it fast, BUT add the current lesson's reward if it's new?
+    // Let's stick to the heuristic compatible with "Ground Up": 
+    // XP = Sum of (Score * 20). Simple.
+    // Or better: currentXP + (LessonReward * Score) if we tracked deltas. 
+    // Since we're re-calculating total, let's just make it proportional to lessons completed * 20 roughly.
+    // Wait, the previous logic was: totalXP = Math.floor(allProgress?.reduce((acc, p) => acc + (p.score * 10), 0) || 0);
+    // Let's buff it to * 20 to feel more rewarding.
+
+    const totalXP = Math.floor(allProgress?.reduce((acc: number, p: any) => acc + (p.score * 20), 0) || 0);
+
+    await updateUserProfile(supabase, userId, {
+        lessons_completed: lessonsCompleted,
+        total_xp: totalXP,
+        last_active_date: new Date().toISOString(),
+        skill_vector: currentSkills
+    });
 }
+
+// --- MIGRATION (Guest -> User) ---
 
 export async function migrateGuestProgress(supabase: SupabaseClient, userId: string): Promise<void> {
     if (typeof window === 'undefined') return;
 
     try {
-        const localProgress = JSON.parse(localStorage.getItem('hechun_guest_progress') || '{}');
-        const lessonIds = Object.keys(localProgress);
+        const progressKey = 'hechun_guest_progress_counts';
+        const legacyKey = 'hechun_guest_progress';
 
+        let progressCounts: Record<string, number> = {};
+        const storedCounts = localStorage.getItem(progressKey);
+
+        if (storedCounts) {
+            progressCounts = JSON.parse(storedCounts);
+        } else {
+            const legacy = localStorage.getItem(legacyKey);
+            if (legacy) {
+                const arr = JSON.parse(legacy);
+                arr.forEach((id: string) => { progressCounts[id] = 1; });
+            }
+        }
+
+        const lessonIds = Object.keys(progressCounts);
         if (lessonIds.length === 0) return;
 
         console.log(`Migrating ${lessonIds.length} guest lessons for user ${userId}`);
 
         for (const lessonIdStr of lessonIds) {
             const lessonId = parseInt(lessonIdStr);
-            const stars = localProgress[lessonIdStr];
-
-            // Re-use submit logic which handles upsert and stats aggregation
-            await submitLessonProgress(supabase, userId, lessonId, stars);
+            // Default score for guest completion = 1.0 (Perfect)
+            await submitLessonProgress(supabase, userId, lessonId, 1.0);
         }
 
-        // Clear local storage after successful migration
-        localStorage.removeItem('hechun_guest_progress');
-        console.log('Guest progress migrated and cleared.');
+        localStorage.removeItem(progressKey);
+        localStorage.removeItem(legacyKey);
+        localStorage.removeItem('hechun_guest_skills');
+
+        console.log('Guest progress migrated.');
     } catch (error) {
         console.error('Failed to migrate guest progress:', error);
     }
-}
-
-export async function fetchLeaderboard(supabase: SupabaseClient, period: 'daily' | 'weekly' | 'all_time' = 'all_time', currentUserId?: string): Promise<UserStats[]> {
-    try {
-        if (period === 'all_time') {
-            const { data, error } = await supabase
-                .from('user_stats')
-                .select('*')
-                .order('total_stars', { ascending: false })
-                .limit(50);
-
-            if (error) throw new ApiError(`Failed to fetch leaderboard: ${error.message}`);
-
-            let allUsers = data || [];
-
-            // Inject Guest User ONLY if user is NOT logged in (Client-side only merge)
-            if (typeof window !== 'undefined' && !currentUserId) {
-                try {
-                    const localProgress = JSON.parse(localStorage.getItem('hechun_guest_progress') || '{}');
-                    const totalStars = Object.values(localProgress).reduce((sum: number, stars: any) => sum + (Number(stars) || 0), 0);
-                    const lessonsCompleted = Object.values(localProgress).filter((s: any) => s > 0).length;
-
-                    if (totalStars > 0) {
-                        const guestUser: UserStats = {
-                            user_id: 'guest',
-                            username: 'You',
-                            total_stars: totalStars,
-                            lessons_completed: lessonsCompleted,
-                            current_streak: 0,
-                            last_activity_date: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
-                        };
-                        allUsers.push(guestUser);
-                        // Re-sort
-                        allUsers.sort((a, b) => b.total_stars - a.total_stars);
-                    }
-                } catch (e) { /* ignore localStorage errors */ }
-            }
-
-            return allUsers.slice(0, 50);
-        } else {
-            // Calculated Daily/Weekly stats from user_progress
-            const now = new Date();
-            let cutoffDate = new Date();
-
-            if (period === 'daily') {
-                cutoffDate.setHours(0, 0, 0, 0); // Start of today
-            } else if (period === 'weekly') {
-                const day = now.getDay();
-                const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is sunday
-                cutoffDate = new Date(now.setDate(diff));
-                cutoffDate.setHours(0, 0, 0, 0); // Start of week (Monday)
-            }
-
-            // Fetch progress updated/created after cutoff
-            const { data: progress, error: progressError } = await supabase
-                .from('user_progress')
-                .select('user_id, stars, updated_at')
-                .gte('updated_at', cutoffDate.toISOString());
-
-            if (progressError) throw new ApiError(`Failed to fetch progress: ${progressError.message}`);
-
-            // Aggregate stars by user
-            const userMap = new Map<string, { stars: number, lessons: number }>();
-            progress?.forEach(p => {
-                const current = userMap.get(p.user_id) || { stars: 0, lessons: 0 };
-                userMap.set(p.user_id, {
-                    stars: current.stars + p.stars,
-                    lessons: current.lessons + 1 // Simply counting entries in period as "activity"
-                });
-            });
-
-            if (userMap.size === 0) return [];
-
-            const userIds = Array.from(userMap.keys());
-
-            // Fetch user details for these IDs
-            const { data: userDetails, error: userError } = await supabase
-                .from('user_stats')
-                .select('user_id, username')
-                .in('user_id', userIds);
-
-            if (userError) throw new ApiError(`Failed to fetch user details: ${userError.message}`);
-
-            // Combine data
-            const leaderboard: UserStats[] = userIds.map(uid => {
-                const stats = userMap.get(uid)!;
-                const user = userDetails?.find(u => u.user_id === uid);
-                return {
-                    user_id: uid,
-                    username: user?.username || 'Learner',
-                    total_stars: stats.stars,
-                    lessons_completed: stats.lessons,
-                    current_streak: 0,
-                    last_activity_date: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                } as UserStats;
-            });
-
-            // Sort by stars descending
-            const sorted = leaderboard.sort((a, b) => b.total_stars - a.total_stars);
-
-            // Inject Guest User ONLY if user is NOT logged in
-            if (typeof window !== 'undefined' && !currentUserId) {
-                const localProgress = JSON.parse(localStorage.getItem('hechun_guest_progress') || '{}');
-                const totalStars = Object.values(localProgress).reduce((sum: number, stars: any) => sum + (Number(stars) || 0), 0);
-                const lessonsCompleted = Object.values(localProgress).filter((s: any) => s > 0).length;
-
-                if (totalStars > 0) {
-                    const guestUser: UserStats = {
-                        user_id: 'guest',
-                        username: 'You',
-                        total_stars: totalStars,
-                        lessons_completed: lessonsCompleted,
-                        current_streak: 0,
-                        last_activity_date: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    };
-
-                    // Insert into sorted array
-                    sorted.push(guestUser);
-                    sorted.sort((a, b) => b.total_stars - a.total_stars);
-                }
-            }
-
-            return sorted.slice(0, 50);
-        }
-    } catch (error) {
-        console.error('Error fetching leaderboard:', error);
-        throw error instanceof ApiError ? error : new ApiError('Failed to fetch leaderboard');
-    }
-}
-
-// --- BADGES ---
-
-async function checkAndAwardBadges(supabase: SupabaseClient, userId: string, lessonId: number): Promise<Badge | null> {
-    try {
-        console.log('Checking badges for user', userId, 'lesson', lessonId);
-        // Get the lesson to find out which level it belongs to
-        const { data: lesson } = await supabase
-            .from('learning_lessons')
-            .select('level_id')
-            .eq('id', lessonId)
-            .single();
-
-        if (!lesson) {
-            console.log('Badge check: Lesson not found');
-            return null;
-        }
-
-        console.log('Badge check: Lesson belongs to level', lesson.level_id);
-
-        // Check if all lessons in this level are completed
-        const { data: levelLessons } = await supabase
-            .from('learning_lessons')
-            .select('id')
-            .eq('level_id', lesson.level_id);
-
-        if (!levelLessons) {
-            console.log('Badge check: No lessons found for level');
-            return null;
-        }
-
-        const { data: userProgress } = await supabase
-            .from('user_progress')
-            .select('lesson_id')
-            .eq('user_id', userId)
-            .gt('stars', 0); // Completed lessons
-
-        const completedLessonIds = new Set(userProgress?.map(p => p.lesson_id));
-        const allCompleted = levelLessons.every(l => completedLessonIds.has(l.id));
-
-        console.log('Badge check: Level lessons', levelLessons.map(l => l.id), 'Completed', Array.from(completedLessonIds), 'All completed?', allCompleted);
-
-        if (allCompleted) {
-            // Find the badge for this level
-            const { data: badges } = await supabase
-                .from('badges')
-                .select('*');
-
-            // Parse criteria JSON if it's a string, or use it directly if it's an object
-            // Supabase returns JSON columns as objects usually, but let's be safe
-            const levelBadge = badges?.find(b => {
-                const criteria = typeof b.criteria === 'string' ? JSON.parse(b.criteria) : b.criteria;
-                return criteria?.type === 'level_complete' && criteria?.level_id === lesson.level_id;
-            });
-
-            if (levelBadge) {
-                console.log('Badge check: Found badge to award', levelBadge.name);
-                // Award badge if not already owned
-                const { error: awardError } = await supabase
-                    .from('user_badges')
-                    .upsert({
-                        user_id: userId,
-                        badge_id: levelBadge.id,
-                        awarded_at: new Date().toISOString()
-                    }, { onConflict: 'user_id, badge_id' });
-
-                if (awardError) {
-                    console.error('Badge check: Error awarding badge', awardError);
-                    return null;
-                } else {
-                    console.log('Badge check: Badge awarded successfully');
-                    return levelBadge as Badge;
-                }
-            } else {
-                console.log('Badge check: No badge found for this level');
-            }
-        }
-        return null;
-    } catch (error) {
-        console.error('Error checking badges:', error);
-        // Don't throw, as it shouldn't block progress submission
-        return null;
-    }
-}
-
-export async function fetchUserBadges(supabase: SupabaseClient, userId: string) {
-    try {
-        const { data, error } = await supabase
-            .from('user_badges')
-            .select('*, badge:badges(*)')
-            .eq('user_id', userId);
-
-        if (error) throw new ApiError(`Failed to fetch badges: ${error.message}`);
-        return data || [];
-    } catch (error) {
-        console.error('Error fetching badges:', error);
-        throw error instanceof ApiError ? error : new ApiError('Failed to fetch badges');
-    }
-}
-
-export async function fetchNextLesson(supabase: SupabaseClient, levelId: number, currentLessonOrder: number): Promise<LearningLesson | null> {
-    const { data, error } = await supabase
-        .from('learning_lessons')
-        .select('*')
-        .eq('level_id', levelId)
-        .gt('lesson_order', currentLessonOrder)
-        .order('lesson_order', { ascending: true })
-        .limit(1)
-        .single();
-
-    if (error) {
-        if (error.code === 'PGRST116') return null; // No next lesson found
-        console.error('Error fetching next lesson:', error);
-        return null;
-    }
-
-    return data;
 }

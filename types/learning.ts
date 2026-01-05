@@ -3,72 +3,55 @@ export interface LearningLevel {
     name: string;
     description: string | null;
     level_order: number;
-    min_stars_required: number;
-    created_at: string;
-    // Joined fields
+    min_stars: number;
     lessons?: LearningLesson[];
-    is_locked?: boolean;
+    is_locked?: boolean; // Hydrated UI state
 }
 
 export interface LearningLesson {
     id: number;
-    level_id: number;
     title: string;
     description: string | null;
     lesson_order: number;
+    content: any; // JSON Structured Content
+    complexity: number;
+    skills_targeted: any;
     xp_reward: number;
-    created_at: string;
-    // Joined fields
-    user_stars?: number; // From user_progress
-    is_locked?: boolean; // Computed on client
+
+    // Joint / Hydrated fields
+    user_score?: number; // 0.0 - 1.0 (Accuracy)
+    is_locked?: boolean;
 }
 
-export type StepType = 'teach' | 'quiz_easy' | 'quiz_hard' | 'speak';
+export interface TeachContent {
+    title: string;
+    description: string;
+    kashmiri_text?: string;
+    transliteration?: string;
+    translation?: string; // English meaning
+    audio_url?: string;
+    image_url?: string;
+}
 
 export interface LessonStep {
-    id: number;
-    lesson_id: number;
-    step_type: StepType;
-    step_order: number;
-    content: any; // JSONB content
-    created_at: string;
+    type: 'teach' | 'quiz' | 'dialogue'; // Inferred from content JSON
+    content: TeachContent | any;
 }
 
-export interface UserProgress {
-    id: number;
-    user_id: string;
-    lesson_id: number;
-    stars: number;
-    completed_at: string;
-    updated_at: string;
-}
-
-export interface UserStats {
-    user_id: string;
-    total_stars: number;
+export interface UserProfile {
+    id: string; // Internal UUID
+    user_id: string; // Auth ID
+    username: string | null;
+    email: string | null;
+    avatar_url: string | null;
     lessons_completed: number;
-    current_streak: number;
-    last_activity_date: string | null;
-    updated_at: string;
-    // Joined fields for leaderboard
-    username?: string; // We might need to fetch this from profiles or metadata
-    avatar_url?: string;
-}
-
-export interface Badge {
-    id: number;
-    name: string;
-    description: string | null;
-    icon_url: string | null;
-    criteria: any;
+    total_xp: number;
+    streak_days: number;
+    last_active_date: string | null;
+    skill_vector: any;
+    is_admin?: boolean;
     created_at: string;
 }
 
-export interface UserBadge {
-    id: number;
-    user_id: string;
-    badge_id: number;
-    awarded_at: string;
-    // Joined fields
-    badge?: Badge;
-}
+// Deprecated: Alias for backward compatibility during refactor if needed
+export type UserStats = UserProfile;

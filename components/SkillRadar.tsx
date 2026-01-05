@@ -4,57 +4,56 @@ import { motion } from 'framer-motion';
 interface SkillRadarProps {
     skills: {
         reading: number;
-        writing: number;
+        grammar: number;
         speaking: number;
+        listening?: number;
+        writing?: number;
     };
     size?: number;
 }
 
 export default function SkillRadar({ skills, size = 300 }: SkillRadarProps) {
-    // Normalize skills (assuming 0-1000 range usually, but let's normalize to 0-10 scale for the chart)
-    // Actually our enum levels (none, beginner, inter, adv) usually map to roughly 0-100.
-    // Let's assume input is 0-100 for percentage visualization.
-
     // Config
     const center = size / 2;
-    const radius = size * 0.35; // Leave room for labels
+    // Increased radius to fill more space (was 0.35)
+    const radius = size * 0.42;
 
-    // Axes angles (top, right-bottom, left-bottom)
-    const angles = [
-        -90,       // Top (Reading?)
-        -90 + 120, // Right Bottom (Writing?)
-        -90 + 240  // Left Bottom (Speaking?)
-    ].map(deg => deg * (Math.PI / 180));
+    // Axes Config (3 axes)
+    const axisConfig = [
+        { key: 'reading', label: 'Reading', angle: -90 },       // Top
+        { key: 'grammar', label: 'Grammar', angle: -90 + 120 }, // Right Bottom
+        { key: 'speaking', label: 'Speaking', angle: -90 + 240 } // Left Bottom
+    ];
 
-    // Axis Labels
-    const labels = ["Reading", "Writing", "Speaking"];
+    const angles = axisConfig.map(a => a.angle * (Math.PI / 180));
 
     // Calculate dynamic points based on skill values (0-100)
-    // Scale: value / 100 * radius
+    // Removed min clamp of 10 to allow true 0
     const getPoint = (angle: number, value: number) => {
-        const dist = (Math.max(10, Math.min(100, value)) / 100) * radius;
+        const dist = (Math.max(0, Math.min(100, value)) / 100) * radius;
         return {
             x: center + Math.cos(angle) * dist,
             y: center + Math.sin(angle) * dist
         };
     };
 
-    const readingPt = getPoint(angles[0], skills.reading);
-    const writingPt = getPoint(angles[1], skills.writing);
-    const speakingPt = getPoint(angles[2], skills.speaking);
+    const points = axisConfig.map((axis, i) => {
+        const val = skills[axis.key as keyof typeof skills] || 0;
+        return getPoint(angles[i], val);
+    });
 
-    const polygonPoints = `${readingPt.x},${readingPt.y} ${writingPt.x},${writingPt.y} ${speakingPt.x},${speakingPt.y}`;
+    const polygonPoints = points.map(p => `${p.x},${p.y}`).join(' ');
 
-    // Background Triangles (Guides)
+    // Background Guides
     const guides = [100, 75, 50, 25].map(pct => {
-        const p1 = getPoint(angles[0], pct);
-        const p2 = getPoint(angles[1], pct);
-        const p3 = getPoint(angles[2], pct);
-        return `${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y}`;
+        return axisConfig.map((_, i) => {
+            const p = getPoint(angles[i], pct);
+            return `${p.x},${p.y}`;
+        }).join(' ');
     });
 
     return (
-        <div className="relative flex items-center justify-center p-4">
+        <div className="relative flex items-center justify-center">
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
                 {/* Background Gradient Defs */}
                 <defs>
@@ -65,10 +64,10 @@ export default function SkillRadar({ skills, size = 300 }: SkillRadarProps) {
                 </defs>
 
                 {/* Guide Lines (Grid) */}
-                {guides.map((points, i) => (
+                {guides.map((pointsStr, i) => (
                     <polygon
                         key={i}
-                        points={points}
+                        points={pointsStr}
                         fill="none"
                         stroke="currentColor"
                         className="text-gray-200 dark:text-gray-700/50"
@@ -102,7 +101,7 @@ export default function SkillRadar({ skills, size = 300 }: SkillRadarProps) {
                 />
 
                 {/* Data Points (Dots) */}
-                {[readingPt, writingPt, speakingPt].map((pt, i) => (
+                {points.map((pt, i) => (
                     <motion.circle
                         key={`dot-${i}`}
                         cx={pt.x} cy={pt.y}
@@ -116,9 +115,10 @@ export default function SkillRadar({ skills, size = 300 }: SkillRadarProps) {
                 ))}
 
                 {/* Label Text */}
-                {angles.map((angle, i) => {
+                {axisConfig.map((axis, i) => {
+                    const angle = angles[i];
                     // Push labels out a bit further than radius
-                    const labelDist = radius + 30;
+                    const labelDist = radius + 20;
                     const lx = center + Math.cos(angle) * labelDist;
                     const ly = center + Math.sin(angle) * labelDist;
 
@@ -130,7 +130,7 @@ export default function SkillRadar({ skills, size = 300 }: SkillRadarProps) {
                             dominantBaseline="middle"
                             className="fill-gray-600 dark:fill-gray-300 text-xs font-bold uppercase tracking-wider"
                         >
-                            {labels[i]}
+                            {axis.label}
                         </text>
                     );
                 })}

@@ -11,6 +11,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
   const [guestSkills, setGuestSkills] = useState<any>(null);
+  const [userSkills, setUserSkills] = useState<any>(null);
 
   useEffect(() => {
     checkProfile();
@@ -19,24 +20,34 @@ export default function HomePage() {
   const checkProfile = async () => {
     setLoading(true);
 
-    // Check local storage for guest progress first
+    // Check local storage for guest progress first (only if not logged in? or always?)
+    // If logged in, we prefer server data usually. 
+    // But existing logic prioritized local. Let's keep it but also fetch user if logged in to overwrite/merge?
+    // Actually, if user is logged in, we should check API. 
+
+    if (user) {
+      try {
+        const res = await fetch('/api/user');
+        const data = await res.json();
+        setHasProfile(data.hasProfile);
+
+        if (data.profile && data.profile.skill_vector) {
+          setUserSkills(data.profile.skill_vector);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Guest check
     const local = localStorage.getItem('hechun_guest_skills');
     if (local) {
       setGuestSkills(JSON.parse(local));
       setHasProfile(true);
       setLoading(false);
       return;
-    }
-
-    // If logged in, check API
-    if (user) {
-      try {
-        const res = await fetch('/api/hechun/user');
-        const data = await res.json();
-        setHasProfile(data.hasProfile);
-      } catch (e) {
-        console.error(e);
-      }
     }
 
     setLoading(false);
@@ -56,7 +67,7 @@ export default function HomePage() {
     return <WelcomeView />;
   }
 
-  return <PathView guestSkills={guestSkills} />;
+  return <PathView guestSkills={guestSkills} userSkills={userSkills} />;
 }
 
 function WelcomeView() {
@@ -93,7 +104,7 @@ function WelcomeView() {
           </p>
 
           <Link
-            href="/hechun/onboarding/start"
+            href="/onboarding/start"
             className="group relative inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-full text-lg font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 hover:scale-105 transition-all duration-300"
           >
             <Sparkles className="w-5 h-5" />
@@ -121,18 +132,23 @@ function WelcomeView() {
   );
 }
 
+
 interface PathViewProps {
   guestSkills?: any;
+  userSkills?: any;
 }
 
-function PathView({ guestSkills }: PathViewProps) {
+function PathView({ guestSkills, userSkills }: PathViewProps) {
   const [nextLesson, setNextLesson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const user = useUser();
+  const [resetting, setResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     async function fetchNext() {
       try {
-        const res = await fetch('/api/hechun/next-lesson', {
+        const res = await fetch('/api/next-lesson', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -151,6 +167,29 @@ function PathView({ guestSkills }: PathViewProps) {
     }
     fetchNext();
   }, [guestSkills]);
+
+  const handleResetProgress = async () => {
+    setResetting(true);
+    try {
+      if (user) {
+        // Server-side reset
+        const res = await fetch('/api/reset-progress', { method: 'POST' });
+        if (!res.ok) throw new Error('Failed to reset');
+      }
+
+      // Always clear local (for mix scenarios or guest)
+      localStorage.removeItem('hechun_guest_skills');
+      localStorage.removeItem('hechun_guest_progress_counts');
+
+      window.location.href = '/onboarding/start'; // Redirect to onboarding
+    } catch (error) {
+      console.error("Reset failed", error);
+      alert("Failed to reset progress. Please try again.");
+    } finally {
+      setResetting(false);
+      setShowResetConfirm(false);
+    }
+  };
 
   return (
     <Layout title="Your Path">
@@ -189,7 +228,7 @@ function PathView({ guestSkills }: PathViewProps) {
                     <p className="text-indigo-200 mb-6">{nextLesson.description}</p>
 
                     <div className="flex items-center gap-4">
-                      <Link href={`/hechun/lesson/${nextLesson.id}`}>
+                      <Link href={`/lesson/${nextLesson.id}`}>
                         <button className="bg-white text-indigo-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-100 transition-colors">
                           Start Lesson <ArrowRight className="w-5 h-5" />
                         </button>
@@ -219,23 +258,22 @@ function PathView({ guestSkills }: PathViewProps) {
             )}
           </div>
 
+
           {/* Right Col: Stats */}
           <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
             <h2 className="text-xl font-bold mb-4 text-center">Your Skill Profile</h2>
-            <SkillRadar
-              skills={{
-                // Default to 10 if null/missing for nice visual baseline
-                // In reality we should map 'beginner' etc to numbers if stored as strings
-                // Assuming API/GuestSkills returns a number or string. 
-                // Let's create a mapper helper or inline it.
-                // For MVP: guestSkills might be { reading: 'beginner' } or { reading: 10 } depending on what we saved.
-                // Diagnostic saved numbers but heuristic profile saved strings?
-                // Let's assume numbers are stored for now or map them.
-                reading: typeof guestSkills?.reading === 'number' ? guestSkills.reading : 30,
-                writing: typeof guestSkills?.writing === 'number' ? guestSkills.writing : 20,
-                speaking: typeof guestSkills?.speaking === 'number' ? guestSkills.speaking : 40,
-              }}
-            />
+            {(() => {
+              const skills = userSkills || guestSkills || {};
+              return (
+                <SkillRadar
+                  skills={{
+                    reading: typeof skills.reading === 'number' ? skills.reading : 0,
+                    grammar: typeof skills.grammar === 'number' ? skills.grammar : (typeof skills.writing === 'number' ? skills.writing : 0),
+                    speaking: typeof skills.speaking === 'number' ? skills.speaking : 0,
+                  }}
+                />
+              );
+            })()}
             <div className="mt-6 text-center text-sm text-gray-400">
               Your adaptive profile updates after every lesson.
             </div>
@@ -243,17 +281,39 @@ function PathView({ guestSkills }: PathViewProps) {
         </div>
 
         <div className="mt-12 text-center">
-          <button
-            onClick={() => {
-              localStorage.removeItem('hechun_guest_skills');
-              window.location.reload();
-            }}
-            className="text-sm text-red-400 hover:text-red-300 underline"
-          >
-            Reset Progress (Debug)
-          </button>
+          {!showResetConfirm ? (
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="text-sm text-red-500 hover:text-red-400 underline opacity-60 hover:opacity-100 transition-all font-medium py-2 px-4 rounded hover:bg-red-900/10"
+            >
+              Reset Progress
+            </button>
+          ) : (
+            <div className="inline-flex flex-col items-center bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-sm mx-auto animate-in zoom-in-50 duration-200">
+              <p className="text-red-700 dark:text-red-200 font-bold mb-2">Are you absolutely sure?</p>
+              <p className="text-sm text-red-600 dark:text-red-300 mb-4">
+                This will permanently delete all your progress, XP, and lesson history. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResetProgress}
+                  disabled={resetting}
+                  className="px-3 py-1.5 text-sm bg-red-600 text-white font-bold rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  {resetting ? 'Deleting...' : 'Yes, Reset Everything'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Layout>
   );
 }
+

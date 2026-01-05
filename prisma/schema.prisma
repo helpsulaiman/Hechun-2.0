@@ -6,55 +6,68 @@ datasource db {
   provider = "postgresql"
 }
 
+// --- USER MANAGEMENT ---
 model UserProfile {
-  id           String   @id @default(uuid())
-  user_id      String   @unique // Auth user ID from Supabase Auth
-  skill_vector Json     @default("{}") // {reading: 1000, speaking: 1000}
-  created_at   DateTime @default(now())
+  id                String    @id @default(uuid())
+  user_id           String    @unique // Links to Supabase Auth
+  username          String?
+  email             String?
+  avatar_url        String?
   
-  progress     LessonProgress[]
+  // Progress Stats (Simplified)
+  is_admin          Boolean   @default(false)
+  lessons_completed Int       @default(0)
+  total_xp          Int       @default(0) // Replacing stars with generic XP
+  streak_days       Int       @default(0)
+  last_active_date  DateTime?
+  
+  // Skill Tracking (Vector)
+  skill_vector      Json?     // { "reading": 10, "writing": 15, ... }
+
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  lessons  LessonProgress[]
 
   @@map("user_profiles")
 }
 
+// --- CONTENT ENGINE ---
+// No more "LearningLevels". Lessons are standalone items with complexity.
+
 model Lesson {
-  id               String   @id @default(uuid())
-  title            String
-  description      String?
-  complexity_score Float    // 0 to 100
-  skills_targeted  Json     // {reading: 0.5, grammar: 0.2}
-  content          Json     // The actual lesson data
+  id              Int       @id // manual ID (e.g. 1001, 1002)
+  lesson_order    Int       // Global order for the linear path
+  title           String
+  description     String?
+  content         Json      // The structured JSON content
   
-  // Graph Relations
-  prerequisites    LessonDependency[] @relation("LessonPrerequisites")
-  dependents       LessonDependency[] @relation("LessonDependents")
-  
-  progress         LessonProgress[]
+  // Metadata for the Engine
+  complexity      Float     @default(1.0) // 1.0 = Beginner, 5.0 = Native
+  skills_targeted Json?     // { "reading": 0.5, "grammar": 0.5 }
+  xp_reward       Int       @default(10)
+
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  progress        LessonProgress[]
 
   @@map("lessons")
 }
 
-model LessonDependency {
-  id             String @id @default(uuid())
-  lesson_id      String
-  prerequisite_id String
-  
-  lesson         Lesson @relation("LessonPrerequisites", fields: [lesson_id], references: [id])
-  prerequisite   Lesson @relation("LessonDependents", fields: [prerequisite_id], references: [id])
-
-  @@unique([lesson_id, prerequisite_id])
-  @@map("lesson_dependencies")
-}
-
 model LessonProgress {
-  id           String   @id @default(uuid())
-  user_id      String   // Links to UserProfile.id
-  lesson_id    String
-  score        Float
-  completed_at DateTime @default(now())
+  id          String    @id @default(uuid())
+  user_id     String
+  lesson_id   Int
   
-  user         UserProfile @relation(fields: [user_id], references: [id])
-  lesson       Lesson      @relation(fields: [lesson_id], references: [id])
+  score       Float     @default(0.0) // 0.0 to 1.0 (Accuracy)
+  completed_at DateTime @default(now())
 
+  user        UserProfile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lesson      Lesson      @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, lesson_id])
   @@map("lesson_progress")
 }
+
+// --- END OF SCHEMA ---

@@ -14,14 +14,15 @@ export async function middleware(req: NextRequest) {
         }
 
         // Check admin status - use maybeSingle() to handle missing rows
-        const { data: userStats, error } = await supabase
-            .from('user_stats')
+        // Check admin status - use maybeSingle() to handle missing rows
+        const { data: userProfile, error } = await supabase
+            .from('user_profiles')
             .select('is_admin')
             .eq('user_id', session.user.id)
             .maybeSingle();
 
         // If no row exists, error occurred, or user is not admin -> redirect
-        if (error || !userStats || !userStats.is_admin) {
+        if (error || !userProfile || !userProfile.is_admin) {
             return NextResponse.redirect(new URL('/', req.url));
         }
     }

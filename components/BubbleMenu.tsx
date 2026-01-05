@@ -27,6 +27,7 @@ interface BubbleMenuProps {
     animationEase?: string;
     animationDuration?: number;
     staggerDelay?: number;
+    children?: React.ReactNode;
 }
 
 const DEFAULT_ITEMS: BubbleMenuItem[] = [
@@ -79,7 +80,8 @@ const BubbleMenu: React.FC<BubbleMenuProps> = ({
     items,
     animationEase = 'back.out(1.5)',
     animationDuration = 0.5,
-    staggerDelay = 0.12
+    staggerDelay = 0.12,
+    children
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false);
@@ -207,6 +209,10 @@ const BubbleMenu: React.FC<BubbleMenuProps> = ({
                     <span className="logo-content">
                         {typeof logo === 'string' ? <img src={logo} alt="Logo" className="bubble-logo" /> : logo}
                     </span>
+                </div>
+
+                <div className="ml-auto flex items-center z-[60] pointer-events-auto">
+                    {children}
                 </div>
 
                 <button

@@ -16,7 +16,7 @@ const LevelNode: React.FC<LevelNodeProps> = ({ lesson, status, position, index }
     return (
         <div className={`${styles.nodeWrapper} ${styles[position]}`} style={{ '--i': index } as any}>
             <Link
-                href={isLocked ? '#' : `/hechun/lesson/${lesson.id}`}
+                href={isLocked ? '#' : `/lesson/${lesson.id}`}
                 className={`${styles.levelNode} ${styles[status]}`}
             >
                 <div className={styles.nodeContent}>
@@ -26,13 +26,20 @@ const LevelNode: React.FC<LevelNodeProps> = ({ lesson, status, position, index }
                         <>
                             <span className={styles.lessonOrder}>{lesson.lesson_order}</span>
                             <div className={styles.starContainer}>
-                                {[1, 2, 3].map((star) => (
-                                    <i
-                                        key={star}
-                                        className={`fas fa-star ${star <= (lesson.user_stars || 0) ? styles.starFilled : styles.starEmpty
-                                            }`}
-                                    />
-                                ))}
+                                {[1, 2, 3].map((star) => {
+                                    // Calculate stars based on score (0.0 - 1.0)
+                                    // 0.6 = 1 star, 0.8 = 2 stars, 0.95 = 3 stars
+                                    const score = lesson.user_score || 0;
+                                    const starsEarned = score >= 0.95 ? 3 : score >= 0.8 ? 2 : score >= 0.6 ? 1 : 0;
+
+                                    return (
+                                        <i
+                                            key={star}
+                                            className={`fas fa-star ${star <= starsEarned ? styles.starFilled : styles.starEmpty
+                                                }`}
+                                        />
+                                    );
+                                })}
                             </div>
                         </>
                     )}
