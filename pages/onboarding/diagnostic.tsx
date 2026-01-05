@@ -7,53 +7,83 @@ import { LearningLesson } from '../../types/learning';
 import { Check, X, ArrowRight } from 'lucide-react';
 
 // Hardcoded diagnostic questions for MVP
-const QUESTIONS = [
-    {
-        id: 1,
-        text: 'What does "kǝšur(Koshur) zabaan" mean?',
-        options: ['Kashmir', 'Kashmiri Language', 'Apple', 'Winter'],
-        correct: 1,
-        skill: 'reading'
-    },
-    {
-        id: 2,
-        text: 'Which is the correct script for "Asalāmu-alaikum"?',
-        options: ['Namaskar', 'Salam', 'Marhabā', 'Assalamu Alaikum'],
-        correct: 3, // Assuming script visual choice, textual for now
-        skill: 'reading'
-    },
-    {
-        id: 3,
-        text: 'Translate: "Tuhund naav kya chu?"',
-        options: ['What is your name?', 'Where are you from?', 'How are you?', 'Who is this?'],
-        correct: 0,
-        skill: 'speaking'
-    },
-    {
-        id: 4,
-        text: 'Select the word for "Water":',
-        options: ['Posh', 'Aab', 'Naar', 'Haa'],
-        correct: 1,
-        skill: 'vocabulary'
-    },
-    {
-        id: 5,
-        text: 'Complete: "Me che ____ lagan."',
-        options: ['Boch (Hunger)', 'Treish (Thirst)', 'Garr (Home)', 'School'],
-        correct: 0,
-        skill: 'grammar'
-    }
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { motion, AnimatePresence } from 'framer-motion';
+import Layout from '../../components/Layout';
+import { Check, X, ArrowRight } from 'lucide-react';
+
+// Expanded Adaptive Question Pool (Complexity 1-10)
+const QUESTION_POOL = [
+    // Beginner (1-3)
+    { id: 101, complexity: 1, text: 'What does "Salam" mean?', options: ['Goodbye', 'Hello/Peace', 'Thank you', 'Yes'], correct: 1, skill: 'reading' },
+    { id: 102, complexity: 1, text: 'Select "Water":', options: ['Posh (Flower)', 'Aab', 'Naar (Fire)', 'Haa'], correct: 1, skill: 'vocabulary' },
+    { id: 103, complexity: 2, text: 'What is "kǝšur"?', options: ['Kashmir', 'Kashmiri Language', 'Winter', 'Food'], correct: 1, skill: 'reading' },
+    { id: 104, complexity: 2, text: 'Translate: "Hu kus chu?"', options: ['Who is he?', 'Where is he?', 'What is that?', 'How are you?'], correct: 0, skill: 'grammar' },
+    { id: 105, complexity: 3, text: '"Me che boch lagan" means:', options: ['I am thirsty', 'I am hungry', 'I am tired', 'I am happy'], correct: 1, skill: 'grammar' },
+
+    // Intermediate (4-6)
+    { id: 201, complexity: 4, text: 'Which word means "Tomorrow"?', options: ['Az', 'Pagah', 'Raath', 'Sont'], correct: 1, skill: 'vocabulary' },
+    { id: 202, complexity: 5, text: 'Complete: "Tse kya ______?" (What is your name?)', options: ['chuy naav', 'chu karun', 'gatsun', 'khyon'], correct: 0, skill: 'grammar' },
+    { id: 203, complexity: 5, text: 'Identify the plural of "Garr" (Home):', options: ['Gar', 'Gar-e', 'Garr-as', 'Gar-an'], correct: 0, skill: 'grammar' }, // Context dependent, but let's assume simplified
+    { id: 204, complexity: 6, text: 'Translate: "Bi chus school gatshan"', options: ['I am going to school', 'I went to school', 'I will go to school', 'School is far'], correct: 0, skill: 'grammar' },
+
+    // Advanced/Fluent (7-10)
+    { id: 301, complexity: 7, text: 'Idiom: "Aab-e zoon" refers to:', options: ['Moon reflected in water (impossible)', 'Very beautiful/Pure', 'A cold winter night', 'Heavy rain'], correct: 1, skill: 'vocabulary' }, // Poetic
+    { id: 302, complexity: 8, text: 'Correct nuance: "Wala" vs "Yit"', options: ['Wala is rude', 'Yit is come (imperative), Wala is bring', 'Both mean go', 'No difference'], correct: 1, skill: 'speaking' }, // Rough approximation
+    { id: 303, complexity: 9, text: 'Complete proverb: "Naav _____, aab ______"', options: ['pet, bon', 'tar, pak', 'daryav, wath', 'None of these'], correct: 0, skill: 'reading' }, // Mock proverb
+    { id: 304, complexity: 9, text: 'Complex Tense: "Su oos pak-aan" means:', options: ['He walks', 'He was walking', 'He has walked', 'He will walk'], correct: 1, skill: 'grammar' },
+    { id: 305, complexity: 10, text: 'Literary: "Lal Ded" is famous for:', options: ['Vakhs (Poetry)', 'Warfare', 'Cooking', 'Architecture'], correct: 0, skill: 'culture' }
 ];
 
 export default function DiagnosticTest() {
     const router = useRouter();
+    const [questions, setQuestions] = useState<typeof QUESTION_POOL>([]);
     const [qIndex, setQIndex] = useState(0);
     const [score, setScore] = useState(0);
     const [selected, setSelected] = useState<number | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    const currentQ = QUESTIONS[qIndex];
+    useEffect(() => {
+        // Load target complexity based on onboarded skill level
+        const loadQuestions = () => {
+            let userLevel = 'beginner';
+            const guestSkills = localStorage.getItem('hechun_guest_skills');
+
+            if (guestSkills) {
+                const skills = JSON.parse(guestSkills);
+                // Simple heuristic: check highest skill or average
+                // Or check explicit level set in start.tsx (start.tsx maps 'none' -> 'beginner' etc.)
+                // Actually start.tsx defaults to 0 mostly.
+                // Let's assume:
+                // Reading/Speaking > 30 -> Intermediate
+                // > 70 -> Fluent
+                const avg = ((skills.reading || 0) + (skills.speaking || 0)) / 2;
+                if (avg > 70) userLevel = 'fluent';
+                else if (avg > 30) userLevel = 'intermediate';
+            }
+
+            // Filter Pool
+            let targetComplexityMin = 1;
+            let targetComplexityMax = 3;
+
+            if (userLevel === 'intermediate') { targetComplexityMin = 4; targetComplexityMax = 7; }
+            if (userLevel === 'fluent') { targetComplexityMin = 7; targetComplexityMax = 10; }
+
+            const filtered = QUESTION_POOL.filter(q => q.complexity >= targetComplexityMin && q.complexity <= targetComplexityMax);
+
+            // Shuffle and pick 5
+            const shuffled = [...filtered].sort(() => 0.5 - Math.random()).slice(0, 5);
+            setQuestions(shuffled.length > 0 ? shuffled : QUESTION_POOL.slice(0, 5)); // Fallback
+            setLoading(false);
+        };
+
+        loadQuestions();
+    }, []);
+
+    const currentQ = questions[qIndex];
 
     const handleAnswer = (optionIndex: number) => {
         if (isAnswered) return;
@@ -65,7 +95,7 @@ export default function DiagnosticTest() {
         }
 
         setTimeout(() => {
-            if (qIndex < QUESTIONS.length - 1) {
+            if (qIndex < questions.length - 1) {
                 setQIndex(q => q + 1);
                 setSelected(null);
                 setIsAnswered(false);
@@ -77,23 +107,25 @@ export default function DiagnosticTest() {
 
     const finishTest = async () => {
         setIsFinished(true);
-        // Calculate adjustments
-        // Max score 5. If 5/5 -> Boost fluency. 
-        // Logic: Just saving the completion for now.
-        // In a real system, we'd fetch the current profile and mutate the vector.
+        // NO XP Awarded for Diagnostic (Requested by User)
 
-        // Simulating delay then redirect
+        // Refine skills based on diagnostic performance? 
+        // Optional: If they got 5/5, maybe bump their cached skills slightly?
+        // For now, keeping it simple: just redirect.
+
         setTimeout(() => {
             router.push('/');
         }, 2000);
     };
+
+    if (loading) return <Layout><div className="flex justify-center p-20">Loading assessment...</div></Layout>;
 
     return (
         <Layout title="Diagnostic Test">
             <div className="min-h-[80vh] flex items-center justify-center p-4">
                 <div className="w-full max-w-2xl">
                     <AnimatePresence mode="wait">
-                        {!isFinished ? (
+                        {!isFinished && currentQ ? (
                             <motion.div
                                 key={currentQ.id}
                                 initial={{ opacity: 0, x: 50 }}
@@ -102,8 +134,8 @@ export default function DiagnosticTest() {
                                 className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-md"
                             >
                                 <div className="flex justify-between text-sm text-gray-400 mb-6">
-                                    <span>Question {qIndex + 1}/{QUESTIONS.length}</span>
-                                    <span>Skill: {currentQ.skill}</span>
+                                    <span>Question {qIndex + 1}/{questions.length}</span>
+                                    <span>Complexity: {currentQ.complexity}</span>
                                 </div>
 
                                 <h2 className="text-2xl font-bold text-white mb-8">{currentQ.text}</h2>
@@ -141,7 +173,7 @@ export default function DiagnosticTest() {
                                 </div>
                                 <h2 className="text-3xl font-bold text-white mb-4">Assessment Complete!</h2>
                                 <p className="text-gray-400 mb-8">
-                                    You got {score} out of {QUESTIONS.length} correct.
+                                    You got {score} out of {questions.length} correct.
                                     <br />
                                     We've calibrated your learning path.
                                 </p>

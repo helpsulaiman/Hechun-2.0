@@ -233,9 +233,7 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
                           Start Lesson <ArrowRight className="w-5 h-5" />
                         </button>
                       </Link>
-                      <span className="text-sm font-mono text-indigo-300">
-                        Complexity: {nextLesson.complexity_score}
-                      </span>
+
                     </div>
                   </div>
                 </div>

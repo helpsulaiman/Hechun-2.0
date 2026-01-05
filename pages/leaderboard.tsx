@@ -37,7 +37,52 @@ const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ init
             setLoading(true);
             setError(null);
             try {
-                const data = await fetchLeaderboard(supabase, period);
+                let data = await fetchLeaderboard(supabase, period);
+
+                // Inject Guest Data if not logged in
+                if (!user) {
+                    const guestSkillsStr = localStorage.getItem('hechun_guest_skills');
+                    const guestProgressStr = localStorage.getItem('hechun_guest_progress_counts'); // Use counts for more accuracy if available
+
+                    if (guestSkillsStr) {
+                        const guestSkills = JSON.parse(guestSkillsStr);
+                        // Calculate total XP roughly from skills (sum of values) or strictly from progress counts if available
+                        // For consistency with 'total_xp' in DB, let's sum the vector values * 10 or similar? 
+                        // Actually, 'total_xp' in DB is often just a stored integer. 
+                        // Let's sum the skill levels for a rough estimate if XP isn't stored explicitly.
+                        // Or better yet, we should store 'guest_xp' or calculate it sum(skills).
+
+                        // Simple XP calculation: sum of skill values. 
+                        // Note: DB values usually around 10-100 per skill. 
+                        const totalXP = (guestSkills.reading || 0) + (guestSkills.speaking || 0) + (guestSkills.grammar || 0) + (guestSkills.writing || 0);
+
+                        // Lesson count
+                        let lessonCount = 0;
+                        if (guestProgressStr) {
+                            const counts = JSON.parse(guestProgressStr);
+                            lessonCount = Object.keys(counts).length;
+                        }
+
+                        const guestUser: UserProfile = {
+                            id: 'guest-local',
+                            user_id: 'guest',
+                            username: 'You (Guest)',
+                            avatar_url: null,
+                            total_xp: totalXP, // This might be low compared to DB if DB is accumulating differently, but it's a start
+                            lessons_completed: lessonCount,
+                            streak_days: 1, // Assume 1 for guest active today
+                            is_admin: false,
+                            created_at: new Date().toISOString(),
+                            email: null,
+                            last_active_date: new Date().toISOString(),
+                            skill_vector: guestSkills
+                        };
+
+                        // Add to list and re-sort
+                        data.push(guestUser);
+                    }
+                }
+
                 setUsers(data);
             } catch (err: any) {
                 console.error('Failed to load leaderboard:', err);

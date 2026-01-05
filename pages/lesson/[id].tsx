@@ -25,6 +25,7 @@ export default function LessonPlayer() {
     const [progress, setProgress] = useState(0);
     const [stepIndex, setStepIndex] = useState(0);
     const [canAdvance, setCanAdvance] = useState(false);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -321,6 +322,14 @@ export default function LessonPlayer() {
                                             }
                                             localStorage.setItem(skillsKey, JSON.stringify(currentVector));
                                         }
+
+                                        // Prompt Login after 2 lessons
+                                        const completedCount = Object.keys(progressCounts).length;
+                                        if (completedCount >= 2) {
+                                            setShowLoginPrompt(true);
+                                            setSubmitting(false); // Stop submitting state so they can read modal
+                                            return; // Don't redirect yet
+                                        }
                                     }
                                     router.push('/');
                                 } catch (e) {
@@ -333,6 +342,51 @@ export default function LessonPlayer() {
                         </button>
                     )}
                 </div>
+
+                {/* Login Prompt Modal */}
+                <AnimatePresence>
+                    {showLoginPrompt && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="bg-white dark:bg-slate-900 rounded-2xl p-8 max-w-md w-full shadow-2xl border border-white/20"
+                            >
+                                <div className="text-center mb-6">
+                                    <div className="mx-auto w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mb-4">
+                                        <Sparkles className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold mb-2">You're on a roll! 🔥</h2>
+                                    <p className="text-slate-600 dark:text-slate-300">
+                                        You've completed 2 lessons! Create a free account to save your progress permanently and climb the leaderboard.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={() => router.push('/auth/register')}
+                                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors"
+                                    >
+                                        Create Account
+                                    </button>
+                                    <button
+                                        onClick={() => router.push('/auth/login')}
+                                        className="w-full py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-colors"
+                                    >
+                                        I have an account
+                                    </button>
+                                    <button
+                                        onClick={() => router.push('/')}
+                                        className="w-full py-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm font-medium transition-colors"
+                                    >
+                                        Continue as Guest
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </div>
         </Layout>
     );
