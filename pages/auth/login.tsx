@@ -21,21 +21,26 @@ const HechunLoginPage: React.FC = () => {
         setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (error) throw error;
 
+            // Check if email is confirmed
+            if (data.user && !data.user.email_confirmed_at) {
+                await supabase.auth.signOut();
+                throw new Error("Please verify your email address to log in.");
+            }
+
             // Migrate guest progress if exists
             try {
                 // 1. Ensure User Profile exists (Trigger might be slow or relying on API access)
-                await fetch('/api/user');
+                await fetch('/api/user'); // Checks session internally
 
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session?.user) {
-                    // Dynamic import to avoid SSR issues if any, or just direct
                     const { migrateGuestProgress } = await import('../../lib/learning-api');
                     await migrateGuestProgress(supabase, session.user.id);
                 }

@@ -4,9 +4,6 @@ import { useRouter } from 'next/router';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import {
     LayoutDashboard,
-    BookOpen,
-    Lightbulb,
-    Languages,
     GraduationCap,
     Users,
     LogOut,
@@ -14,8 +11,11 @@ import {
     Menu,
     X,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Settings
 } from 'lucide-react';
+import ThemeImage from './ThemeImage'; // Ensure logo consistency
+import ThemeToggle from './ThemeToggle';
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -55,56 +55,73 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
 
             <aside
                 className={`
-                    glass-effect fixed md:static inset-y-0 left-0 z-50 flex flex-col h-full border-r border-white/10 transition-all duration-300 ease-in-out
+                    fixed md:static inset-y-0 left-0 z-50 flex flex-col h-full bg-card border-r border-border transition-all duration-300 ease-in-out shadow-xl md:shadow-none
                     ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
                     ${isCollapsed ? 'w-20' : 'w-64'}
                 `}
             >
                 {/* Header */}
-                <div className={`h-20 flex items-center ${isCollapsed ? 'justify-center' : 'px-6'} border-b border-white/10 relative`}>
-                    <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity overflow-hidden">
-                        <Hexagon className="w-8 h-8 text-indigo-400 flex-shrink-0" />
-                        {!isCollapsed && <span className="text-xl font-bold text-white whitespace-nowrap">Hečhun</span>}
+                <div className={`h-20 flex items-center ${isCollapsed ? 'justify-center' : 'px-6'} border-b border-border relative`}>
+                    <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity overflow-hidden">
+                        <div className="w-8 h-8 relative flex-shrink-0">
+                            <ThemeImage
+                                srcLight="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_L.png"
+                                srcDark="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_D.png"
+                                alt="Logo"
+                                width={32}
+                                height={32}
+                                className="object-contain"
+                            />
+                        </div>
+                        {!isCollapsed && <span className="text-xl font-bold text-foreground whitespace-nowrap">Hečhun</span>}
                     </Link>
 
                     {/* Close button for Mobile */}
                     <button
                         onClick={() => setIsOpen(false)}
-                        className="absolute right-4 md:hidden text-gray-400 hover:text-white"
+                        className="absolute right-4 md:hidden text-muted-foreground hover:text-foreground"
                     >
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-grow p-4 space-y-2 overflow-y-auto overflow-x-hidden">
+                <nav className="flex-grow p-4 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-border">
                     {navItems.map(item => {
                         const isActive = router.pathname === item.href;
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                onClick={() => setIsOpen(false)} // Close on mobile navigation
+                                onClick={() => setIsOpen(false)}
                                 className={`
-                                    nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 transition-all hover:bg-white/5
-                                    ${isActive ? 'active bg-white/10 text-white shadow-sm' : ''}
+                                    flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all
+                                    ${isActive
+                                        ? 'bg-primary text-primary-foreground shadow-md'
+                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    }
                                     ${isCollapsed ? 'justify-center' : ''}
                                 `}
                                 title={isCollapsed ? item.label : undefined}
                             >
                                 {item.icon}
-                                {!isCollapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
+                                {!isCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">{item.label}</span>}
                             </Link>
                         );
                     })}
                 </nav>
 
                 {/* Footer Controls */}
-                <div className="p-4 border-t border-white/10 space-y-4">
+                <div className="p-4 border-t border-border space-y-2">
+                    {/* Theme Toggle - Centered if collapsed, aligned if expanded */}
+                    <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-start px-2'}`}>
+                        <ThemeToggle />
+                    </div>
+
                     {/* PC Collapse Toggle */}
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="hidden md:flex items-center justify-center w-full p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                        className="hidden md:flex items-center justify-center w-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
                     >
                         {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
                     </button>
@@ -112,13 +129,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
                     <button
                         onClick={handleLogout}
                         className={`
-                            flex items-center gap-3 px-4 py-2 w-full rounded-lg text-gray-300 transition-colors hover:bg-red-500/10 hover:text-red-400 group
+                            flex items-center gap-3 px-4 py-2 w-full rounded-lg text-muted-foreground transition-all hover:bg-red-500/10 hover:text-red-500 group
                             ${isCollapsed ? 'justify-center px-2' : ''}
                         `}
                         title="Log Out"
                     >
-                        <LogOut className="w-5 h-5 flex-shrink-0 group-hover:text-red-400" />
-                        {!isCollapsed && <span className="whitespace-nowrap overflow-hidden">Log Out</span>}
+                        <LogOut className="w-5 h-5 flex-shrink-0" />
+                        {!isCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Log Out</span>}
                     </button>
                 </div>
             </aside>
@@ -131,15 +148,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     return (
-        <div className="h-screen w-full flex bg-gray-900 text-gray-200 font-sans relative overflow-hidden">
-            <div className="shape-1 fixed top-0 left-0"></div>
-            <div className="shape-2 fixed bottom-0 right-0"></div>
-
+        <div className="h-screen w-full flex bg-background text-foreground font-sans relative overflow-hidden">
             {/* Mobile Header Trigger */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-gray-900/50 backdrop-blur-md border-b border-white/10 flex items-center px-4 z-50 glass-effect">
+            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-md border-b border-border flex items-center px-4 z-40">
                 <button
                     onClick={() => setIsSidebarOpen(true)}
-                    className="p-2 text-white hover:bg-white/10 rounded-lg"
+                    className="p-2 text-foreground hover:bg-muted rounded-lg transition-colors"
                 >
                     <Menu className="w-6 h-6" />
                 </button>
@@ -153,8 +167,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 setIsCollapsed={setIsCollapsed}
             />
 
-            <main className="flex-grow p-4 md:p-8 z-0 overflow-y-auto h-full pt-20 md:pt-8 w-full transition-all duration-300">
-                <div className="glass-effect rounded-2xl p-4 md:p-8 min-h-max">
+            <main className="flex-grow relative h-full overflow-y-auto no-scrollbar pt-16 md:pt-0 bg-muted/20">
+                <div className="max-w-7xl mx-auto p-4 md:p-8 min-h-full">
                     {children}
                 </div>
             </main>

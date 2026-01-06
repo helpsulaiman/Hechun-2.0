@@ -30,35 +30,35 @@ const STEPS = [
         title: 'How is your Speaking?',
         subtitle: 'Can you hold a conversation in Kashmiri?',
         icon: <Mic className="w-12 h-12 text-blue-400" />,
-        field: 'speaking' as keyof SkillProfile,
+        field: 'speaking' as const,
     },
     {
-        id: 'reading',
-        title: 'How is your Reading?',
-        subtitle: 'Can you read the Perso-Arabic script?',
+        id: 'reading_writing',
+        title: 'Reading & Writing?',
+        subtitle: 'Can you read and write the Perso-Arabic script?',
         icon: <BookOpen className="w-12 h-12 text-green-400" />,
-        field: 'reading' as keyof SkillProfile,
+        field: 'reading_writing' as const,
     },
     {
-        id: 'writing',
-        title: 'And your Writing?',
-        subtitle: 'Can you write in Kashmiri?',
-        icon: <PenTool className="w-12 h-12 text-purple-400" />,
-        field: 'writing' as keyof SkillProfile,
+        id: 'grammar_vocabulary',
+        title: 'Grammar & Vocabulary?',
+        subtitle: 'How is your grasp of grammar rules and words?',
+        icon: <Sparkles className="w-12 h-12 text-purple-400" />,
+        field: 'grammar_vocabulary' as const,
     },
 ];
 
 export default function OnboardingStart() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(0);
-    const [skills, setSkills] = useState<{
+    const [skillsSelection, setSkillsSelection] = useState<{
         speaking: SkillLevel | null;
-        reading: SkillLevel | null;
-        writing: SkillLevel | null;
+        reading_writing: SkillLevel | null;
+        grammar_vocabulary: SkillLevel | null;
     }>({
         speaking: null,
-        reading: null,
-        writing: null,
+        reading_writing: null,
+        grammar_vocabulary: null,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
@@ -66,7 +66,7 @@ export default function OnboardingStart() {
     const handleNext = () => {
         if (isTransitioning) return;
         const field = STEPS[currentStep].field;
-        if (field && !skills[field]) {
+        if (field && !skillsSelection[field]) {
             return;
         }
 
@@ -82,7 +82,7 @@ export default function OnboardingStart() {
 
         const field = STEPS[currentStep].field;
         if (field) {
-            setSkills(prev => ({ ...prev, [field]: level }));
+            setSkillsSelection(prev => ({ ...prev, [field]: level }));
             setIsTransitioning(true);
 
             setTimeout(() => {
@@ -99,20 +99,34 @@ export default function OnboardingStart() {
     const handleSubmit = async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
+
+        // Transform selection to API format (Expanded)
+        const expandedSkills = {
+            speaking: skillsSelection.speaking,
+            reading: skillsSelection.reading_writing,
+            writing: skillsSelection.reading_writing,
+            grammar: skillsSelection.grammar_vocabulary,
+            vocabulary: skillsSelection.grammar_vocabulary
+        };
+
         try {
             const res = await fetch('/api/user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ skills }),
+                body: JSON.stringify({ skills: expandedSkills }),
             });
 
             const data = await res.json();
 
             if (data.isGuest && data.skillVector) {
+                // Save the vector (numeric) returned by API
                 localStorage.setItem('hechun_guest_skills', JSON.stringify(data.skillVector));
+
+                // Also save the SELECTION for Diagnostic calibration
+                localStorage.setItem('hechun_guest_skills_selection', JSON.stringify(skillsSelection));
             }
 
-            const hasPriorKnowledge = Object.values(skills).some(level => level !== 'none');
+            const hasPriorKnowledge = Object.values(skillsSelection).some(level => level !== 'none');
 
             if (hasPriorKnowledge) {
                 router.push('/onboarding/diagnostic');
@@ -152,7 +166,7 @@ export default function OnboardingStart() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.3 }}
-                            className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden"
+                            className="bg-card/80 backdrop-blur-lg border border-border rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden"
                         >
                             {/* Background Glow */}
                             <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
@@ -165,10 +179,10 @@ export default function OnboardingStart() {
                                     </div>
                                 </div>
 
-                                <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                                <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground">
                                     {stepData.title}
                                 </h1>
-                                <p className="text-xl text-gray-400 mb-10 max-w-lg mx-auto">
+                                <p className="text-xl text-muted-foreground mb-10 max-w-lg mx-auto">
                                     {stepData.subtitle}
                                 </p>
 
@@ -178,7 +192,7 @@ export default function OnboardingStart() {
                                         whileTap={{ scale: 0.95 }}
                                         onClick={handleNext}
                                         disabled={isTransitioning}
-                                        className="px-8 py-4 bg-white text-black text-lg font-bold rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2 mx-auto disabled:opacity-50"
+                                        className="px-8 py-4 bg-primary text-primary-foreground text-lg font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center gap-2 mx-auto disabled:opacity-50"
                                     >
                                         Start Assessment <ArrowRight className="w-5 h-5" />
                                     </motion.button>
@@ -187,27 +201,27 @@ export default function OnboardingStart() {
                                         {SKILL_LEVELS.map((level) => (
                                             <motion.button
                                                 key={level.id}
-                                                whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.15)' }}
+                                                whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => handleSelect(level.id)}
                                                 disabled={isTransitioning}
                                                 className={`p-6 rounded-2xl border text-left transition-all group
-                                                    ${skills[stepData.field!] === level.id
-                                                        ? 'border-indigo-500 bg-indigo-500/20'
-                                                        : 'border-white/10 bg-white/5 hover:border-white/30'
+                                                    ${skillsSelection[stepData.field!] === level.id
+                                                        ? 'border-primary bg-primary/10'
+                                                        : 'border-border bg-card/50 hover:bg-muted/50'
                                                     }
-disabled:opacity-50 disabled:cursor-not-allowed
-    `}
+                                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                                `}
                                             >
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className={`font-bold text-lg ${skills[stepData.field!] === level.id ? 'text-indigo-400' : 'text-white'} `}>
+                                                    <span className={`font-bold text-lg ${skillsSelection[stepData.field!] === level.id ? 'text-primary' : 'text-foreground'} `}>
                                                         {level.label}
                                                     </span>
-                                                    {skills[stepData.field!] === level.id && (
-                                                        <Check className="w-5 h-5 text-indigo-400" />
+                                                    {skillsSelection[stepData.field!] === level.id && (
+                                                        <Check className="w-5 h-5 text-primary" />
                                                     )}
                                                 </div>
-                                                <p className="text-sm text-gray-400 group-hover:text-gray-300">
+                                                <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
                                                     {level.description}
                                                 </p>
                                             </motion.button>
@@ -225,7 +239,7 @@ disabled:opacity-50 disabled:cursor-not-allowed
                                 if (!isTransitioning) setCurrentStep(c => Math.max(0, c - 1));
                             }}
                             disabled={isTransitioning}
-                            className="mt-6 text-gray-500 hover:text-white transition-colors flex items-center gap-2 mx-auto disabled:opacity-50"
+                            className="mt-6 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 mx-auto disabled:opacity-50"
                         >
                             Back
                         </button>

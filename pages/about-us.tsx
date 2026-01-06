@@ -11,7 +11,7 @@ const teamMembers: Testimonial[] = [
     {
         name: "Sulaiman Shabir",
         title: "Co-Leader & Main Developer",
-        description: "Leading the development of Hečhun. Passionate about preserving Kashmiri language through code.",
+        description: "Architecting the adaptive learning engine and integrating Wav2Vec2 AI for real-time pronunciation feedback.",
         imageUrl: "https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/helpsulaiman.jpeg",
         githubUrl: "https://github.com/helpsulaiman",
         instagramUrl: "https://instagram.com/helpsulaiman.clicks",
@@ -20,7 +20,7 @@ const teamMembers: Testimonial[] = [
     {
         name: "Tehniyah Rayaz",
         title: "Co-Leader & Creative Lead",
-        description: "Driving the creative vision of Hečhun. Ensuring our visual language resonates with the culture.",
+        description: "Crafting the visual identity and intuitive UI that makes learning Kashmiri accessible and engaging.",
         imageUrl: "https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/tehniyah2.jpg",
         githubUrl: "#",
         twitterUrl: "#",
@@ -30,7 +30,7 @@ const teamMembers: Testimonial[] = [
     {
         name: "Furqan Malik",
         title: "Content & Research",
-        description: "Curating idioms and verifying cultural accuracy. Deeply invested in authentic representation.",
+        description: "Structuring the comprehensive curriculum and verifying cultural nuances for the adaptive learning path.",
         imageUrl: "https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/furqan.jpg",
         instagramUrl: "https://instagram.com/ffurqann18",
         githubUrl: "#",
@@ -41,7 +41,7 @@ const teamMembers: Testimonial[] = [
     {
         name: "Farees Ahmed",
         title: "UX & Content Curation",
-        description: "Enhancing user experience and content flow. Making learning Kashmiri seamless and fun.",
+        description: "Optimizing the user journey and curating content to ensure a seamless progression from basics to fluency.",
         imageUrl: "https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Farees2.jpg",
         instagramUrl: "https://instagram.com/ahangerfarees",
         githubUrl: "#",
@@ -52,7 +52,7 @@ const teamMembers: Testimonial[] = [
     {
         name: "Anha Nabi",
         title: "Content Verification",
-        description: "Ensuring the correctness of every idiom. Committed to linguistic precision.",
+        description: "Ensuring linguistic precision and phonetic accuracy for the AI training dataset and lesson content.",
         imageUrl: "https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/DYDsSpiritDark.png",
         githubUrl: "#",
         twitterUrl: "#",

@@ -90,7 +90,7 @@ const ManageUsersPage: React.FC = () => {
                         <h1 className="text-3xl font-bold text-foreground">Manage Users</h1>
                         <button
                             onClick={fetchUsers}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-muted border border-border rounded-lg text-sm text-foreground transition-colors"
                         >
                             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                             Refresh
@@ -99,13 +99,13 @@ const ManageUsersPage: React.FC = () => {
 
                     {/* Search Bar */}
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <input
                             type="text"
                             placeholder="Search by username..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                         />
                     </div>
 
@@ -113,52 +113,52 @@ const ManageUsersPage: React.FC = () => {
                     {isLoading ? (
                         <div className="text-center py-12 text-muted-foreground">Loading users...</div>
                     ) : users.length === 0 ? (
-                        <div className="text-center py-12 bg-white/5 rounded-lg border border-white/10">
+                        <div className="text-center py-12 bg-card rounded-lg border border-border">
                             <p className="text-muted-foreground">
                                 {debouncedSearch ? 'No users found matching your search.' : 'No users found.'}
                             </p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto bg-card rounded-lg border border-border">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-white/10">
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">User</th>
-                                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-400">
+                                    <tr className="border-b border-border">
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">User</th>
+                                        <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">
                                             XP
                                         </th>
-                                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-400">
+                                        <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">
                                             <BookOpen className="w-4 h-4 inline" />
                                         </th>
-                                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-400">
+                                        <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">
                                             <Flame className="w-4 h-4 inline" />
                                         </th>
-                                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-400">Admin</th>
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Last Active</th>
+                                        <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Admin</th>
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Last Active</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-white/5">
+                                <tbody className="divide-y divide-border">
                                     {users.map((user) => (
-                                        <tr key={user.user_id} className="hover:bg-white/5 transition-colors">
+                                        <tr key={user.user_id} className="hover:bg-muted/50 transition-colors">
                                             <td className="py-4 px-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                                                         {(user.username || 'U')[0].toUpperCase()}
                                                     </div>
                                                     <div>
                                                         <p className="font-medium text-foreground">
                                                             {user.username || 'Unnamed User'}
                                                         </p>
-                                                        <p className="text-xs text-gray-500 font-mono">
+                                                        <p className="text-xs text-muted-foreground font-mono">
                                                             {user.user_id.slice(0, 8)}...
                                                         </p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-4 text-center text-yellow-400 font-medium">
+                                            <td className="py-4 px-4 text-center text-yellow-500 font-medium">
                                                 {user.total_xp}
                                             </td>
-                                            <td className="py-4 px-4 text-center text-gray-300">
+                                            <td className="py-4 px-4 text-center text-foreground">
                                                 {user.lessons_completed}
                                             </td>
                                             <td className="py-4 px-4 text-center text-orange-500 font-bold">
@@ -168,14 +168,14 @@ const ManageUsersPage: React.FC = () => {
                                                 <button
                                                     onClick={() => toggleAdmin(user.user_id, !!user.is_admin)}
                                                     className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${user.is_admin
-                                                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                                            : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'
+                                                        ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                                                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
                                                         }`}
                                                 >
                                                     {user.is_admin ? 'Admin' : 'User'}
                                                 </button>
                                             </td>
-                                            <td className="py-4 px-4 text-sm text-gray-400">
+                                            <td className="py-4 px-4 text-sm text-muted-foreground">
                                                 {formatDate(user.last_active_date)}
                                             </td>
                                         </tr>

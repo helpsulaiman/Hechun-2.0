@@ -17,6 +17,7 @@ export interface LearningLesson {
     complexity: number;
     skills_targeted: any;
     xp_reward: number;
+    skill_reward?: Record<string, number>;
 
     // Joint / Hydrated fields
     user_score?: number; // 0.0 - 1.0 (Accuracy)

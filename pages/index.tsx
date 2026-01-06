@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import { useUser } from '@supabase/auth-helpers-react';
-import { ArrowRight, Sparkles, Map } from 'lucide-react';
+import { ArrowRight, Sparkles, Map, RotateCcw } from 'lucide-react';
 import ThemeImage from '../components/ThemeImage';
 import SkillRadar from '../components/SkillRadar';
 import GuestLoginNudge from '../components/GuestLoginNudge';
@@ -78,20 +78,20 @@ function WelcomeView() {
 
         <div className="z-10 container mx-auto px-4 text-center max-w-4xl relative">
           <div className="mb-8 flex justify-center">
-            <div className="w-32 h-32 md:w-48 md:h-48 relative animate-float">
+            <div className="w-60 h-60 md:w-80 md:h-80 relative animate-float">
               <ThemeImage
                 srcLight="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_L.png"
                 srcDark="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_D.png"
                 alt="Hechun Logo"
-                width={200}
-                height={200}
+                width={400}
+                height={400}
                 className="object-contain w-full h-full"
               />
             </div>
           </div>
 
           <h1 className="text-4xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground">
-            Learn Kashmiri the <span className="text-primary">Adaptive</span> Way.
+            Learn Kashmiri <span className="text-primary">YOUR</span> Way.
           </h1>
 
           <p className="text-xl text-muted-foreground mb-10 leading-relaxed max-w-2xl mx-auto">
@@ -268,24 +268,43 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
           </div>
 
 
-          {/* Right Col: Stats */}
-          <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
-            <h2 className="text-xl font-bold mb-4 text-center text-card-foreground">Your Skill Profile</h2>
-            {(() => {
-              const skills = userSkills || guestSkills || {};
-              return (
-                <SkillRadar
-                  skills={{
-                    reading: typeof skills.reading === 'number' ? skills.reading : 0,
-                    grammar: typeof skills.grammar === 'number' ? skills.grammar : (typeof skills.writing === 'number' ? skills.writing : 0),
-                    speaking: typeof skills.speaking === 'number' ? skills.speaking : 0,
-                  }}
-                />
-              );
-            })()}
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              Your adaptive profile updates after every lesson.
+          {/* Right Col: Stats & History */}
+          <div className="flex flex-col gap-6">
+            <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
+              <h2 className="text-xl font-bold mb-4 text-center text-card-foreground">Your Skill Profile</h2>
+              {(() => {
+                const skills = userSkills || guestSkills || {};
+                return (
+                  <SkillRadar
+                    skills={{
+                      reading: typeof skills.reading === 'number' ? skills.reading : 0,
+                      writing: typeof skills.writing === 'number' ? skills.writing : 0,
+                      grammar: typeof skills.grammar === 'number' ? skills.grammar : 0,
+                      vocabulary: typeof skills.vocabulary === 'number' ? skills.vocabulary : 0,
+                      speaking: typeof skills.speaking === 'number' ? skills.speaking : 0,
+                    }}
+                  />
+                );
+              })()}
+              <div className="mt-6 text-center text-sm text-muted-foreground">
+                Your adaptive profile updates after every lesson.
+              </div>
             </div>
+
+            <Link href="/history">
+              <div className="bg-card hover:bg-accent/5 border border-border rounded-3xl p-6 shadow-sm flex items-center justify-between group transition-all cursor-pointer">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-500/10 text-blue-500 rounded-full">
+                    <RotateCcw className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Review & Redo</h3>
+                    <p className="text-sm text-muted-foreground">Practice previous lessons</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </div>
+            </Link>
           </div>
         </div>
 

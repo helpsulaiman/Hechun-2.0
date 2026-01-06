@@ -60,7 +60,7 @@ function DialogueBubble({ line, isLeft, delay, showTransliteration }: { line: Di
                 `}
                 onClick={() => play()}
             >
-                <div className="text-lg font-medium mb-1">{line.text}</div>
+                <div className="text-xl font-medium mb-1 text-kashmiri">{line.text}</div>
 
                 {showTransliteration && line.transliteration && (
                     <div className="text-sm font-mono opacity-80 mb-1 italic">

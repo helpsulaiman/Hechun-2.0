@@ -2,74 +2,115 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '../../components/Layout';
-import { fetchLessons } from '../../lib/learning-api';
-import { LearningLesson } from '../../types/learning';
-import { Check, X, ArrowRight } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
-// Expanded Adaptive Question Pool (Complexity 1-10)
-const QUESTION_POOL = [
-    // Beginner (1-3)
-    { id: 101, complexity: 1, text: 'What does "Salam" mean?', options: ['Goodbye', 'Hello/Peace', 'Thank you', 'Yes'], correct: 1, skill: 'reading' },
-    { id: 102, complexity: 1, text: 'Select "Water":', options: ['Posh', 'Aab', 'Naar', 'Haa'], correct: 1, skill: 'vocabulary' },
-    { id: 103, complexity: 2, text: 'What is "kǝšur zabaan"?', options: ['Kashmir', 'Kashmiri Language', 'Winter', 'Food'], correct: 1, skill: 'reading' },
-    { id: 104, complexity: 2, text: 'Translate: "Hu kus chu?"', options: ['Who is he?', 'Where is he?', 'What is that?', 'How are you?'], correct: 0, skill: 'grammar' },
-    { id: 105, complexity: 3, text: '"Me lej boch" means:', options: ['I am thirsty', 'I am hungry', 'I am tired', 'I am happy'], correct: 1, skill: 'grammar' },
+type QuestionCategory = 'speaking' | 'reading_writing' | 'grammar_vocabulary';
 
-    // Intermediate (4-6)
-    { id: 201, complexity: 4, text: 'Which word means "Tomorrow"?', options: ['Āz', 'Pagah', 'Rāth', 'Öutre'], correct: 1, skill: 'vocabulary' },
-    { id: 202, complexity: 5, text: 'Complete: "Tsye kya ______?" (What is your name?)', options: ['chuy naav', 'chuy karun', 'gasun', 'khyon'], correct: 0, skill: 'grammar' },
-    { id: 203, complexity: 5, text: 'Identify the plural of "Garr" (Home):', options: ['Gar', 'Gar-e', 'Garr-as', 'Gar-an'], correct: 3, skill: 'grammar' }, // Context dependent, but let's assume simplified
-    { id: 204, complexity: 6, text: 'Translate: "Bi chus school gasān"', options: ['I am going to school', 'I went to school', 'I will go to school', 'School is far'], correct: 0, skill: 'grammar' },
+interface Question {
+    id: number;
+    complexity: number;
+    text: string;
+    options: string[];
+    correct: number;
+    category: QuestionCategory;
+    skill: 'speaking' | 'reading' | 'writing' | 'grammar' | 'vocabulary' | 'culture';
+}
 
-    // Advanced/Fluent (7-10)
-    { id: 301, complexity: 7, text: 'Idiom: "اَکھ تٕہ اَکھ گَیِہ کاہ (Akh ti akh gei kah)" refers to:', options: ['Not to pay heed', 'To get unexpected results', 'Strength in unity', 'Heavy rain'], correct: 2, skill: 'vocabulary' }, // Poetic
-    { id: 302, complexity: 8, text: 'Correct nuance: "Wala" vs "Yuv"', options: ['Wala is rude', 'Yuv is come (imperative), Wala is bring', 'Both mean go', 'No difference'], correct: 1, skill: 'speaking' }, // Rough approximation
-    { id: 303, complexity: 9, text: 'Complete proverb: "Naayi _____, aab as______"', options: ['pet, manz', 'tar, pak', 'daryav, wath', 'None of these'], correct: 0, skill: 'reading' }, // Mock proverb
-    { id: 304, complexity: 9, text: 'Complex Tense: "Su oos pak-aan" means:', options: ['He walks', 'He was walking', 'He has walked', 'He will walk'], correct: 1, skill: 'grammar' },
-    { id: 305, complexity: 10, text: 'Literary: "Lal Ded" is famous for:', options: ['Vakhs (Poetry)', 'Warfare', 'Cooking', 'Architecture'], correct: 0, skill: 'culture' }
+// Mock Pool - In production this should be larger (20 per category * 10 complexity levels ideally)
+const QUESTION_POOL: Question[] = [
+    // --- SPEAKING ---
+    { id: 101, complexity: 1, category: 'speaking', skill: 'speaking', text: 'How do you say "Hello"?', options: ['Salam', 'Kyah', 'Na', 'Awa'], correct: 0 },
+    { id: 102, complexity: 5, category: 'speaking', skill: 'speaking', text: 'Response to "Tuhey kyah chiv karan?"', options: ['Bi chus gatshan', 'Bi chus parān', 'Salam', 'Awa'], correct: 1 },
+    { id: 103, complexity: 8, category: 'speaking', skill: 'speaking', text: 'Nuance: "Hata!" is used for?', options: ['Respectful address', 'Calling a male friend (informal)', 'Calling a female', 'Scolding'], correct: 1 },
+    { id: 104, complexity: 3, category: 'speaking', skill: 'speaking', text: '"Tohi chiv varaay?" means:', options: ['Are you well?', 'Who are you?', 'Where is it?', 'Come here'], correct: 0 },
+    { id: 105, complexity: 6, category: 'speaking', skill: 'speaking', text: 'Formal way to say "Sit down":', options: ['Beh', 'Behiv', 'Tul', 'Gats'], correct: 1 },
+    { id: 106, complexity: 2, category: 'speaking', skill: 'speaking', text: 'Saying "Thank you":', options: ['Shukriya', 'Salam', 'Adab', 'Bas'], correct: 0 },
+    { id: 107, complexity: 9, category: 'speaking', skill: 'speaking', text: 'Correct intonation for "Kyah?" (What?) vs "Kyah!" (Really!):', options: ['Rising vs Falling', 'Falling vs Rising', 'Flat vs High', 'No difference'], correct: 0 },
+    { id: 108, complexity: 4, category: 'speaking', skill: 'speaking', text: '"Me lej tresh" expresses:', options: ['Thirst', 'Hunger', 'Pain', 'Joy'], correct: 0 },
+    { id: 109, complexity: 7, category: 'speaking', skill: 'speaking', text: 'Native idiom for "I understand":', options: ['Me aav gats', 'Me pyav fikri', 'Bi chus zanan', 'Me gov maloom'], correct: 1 },
+    { id: 110, complexity: 10, category: 'speaking', skill: 'speaking', text: 'Complex polite command: "Tohi heykiyav..."', options: ['You could...', 'You must...', 'Why did you...', 'Are you...'], correct: 0 },
+
+    // --- READING / WRITING ---
+    { id: 201, complexity: 1, category: 'reading_writing', skill: 'reading', text: 'Letter "A" in Kashmiri script:', options: ['ا', 'ب', 'ج', 'د'], correct: 0 },
+    { id: 202, complexity: 2, category: 'reading_writing', skill: 'reading', text: 'Identify "Pan" (Leaf):', options: ['پَن', 'تَن', 'مَن', 'لَن'], correct: 0 },
+    { id: 203, complexity: 5, category: 'reading_writing', skill: 'reading', text: 'Read: "کٲشُر"', options: ['Kashruk', 'Koshur', 'Kashir', 'Kashmir'], correct: 1 },
+    { id: 204, complexity: 6, category: 'reading_writing', skill: 'writing', text: 'Correct spelling for "School":', options: ['سکول', 'اسکول', 'سوکول', 'سکال'], correct: 0 },
+    { id: 205, complexity: 3, category: 'reading_writing', skill: 'reading', text: 'Which letter is "Tse"?', options: ['ژ', 'چ', 'ج', 'خ'], correct: 0 },
+    { id: 206, complexity: 8, category: 'reading_writing', skill: 'reading', text: 'Vowel mark for "Ö" sound:', options: ['Zer', 'Zabar', 'pesh', 'None'], correct: 1 },
+    { id: 207, complexity: 4, category: 'reading_writing', skill: 'reading', text: 'Read "آب" :', options: ['Aab', 'Sab', 'Tab', 'Kab'], correct: 0 },
+    { id: 208, complexity: 7, category: 'reading_writing', skill: 'writing', text: 'Write "Garr" (Home):', options: ['گَر', 'گھر', 'گرٕ', 'گار'], correct: 2 },
+    { id: 209, complexity: 9, category: 'reading_writing', skill: 'reading', text: 'Distinguish "R" (ر) vs "D" (ڑ):', options: ['Shape', 'Dot position', 'No difference', 'Sound only'], correct: 1 },
+    { id: 210, complexity: 10, category: 'reading_writing', skill: 'reading', text: 'Classic script style used in Kashmir:', options: ['Nastaliq', 'Naskh', 'Kufic', 'Thuluth'], correct: 0 },
+
+    // --- GRAMMAR / VOCABULARY ---
+    { id: 301, complexity: 1, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Word for "Cat":', options: ['Broor', 'Hoon', 'Gurr', 'Khar'], correct: 0 },
+    { id: 302, complexity: 2, category: 'grammar_vocabulary', skill: 'grammar', text: 'Plural of "Hoon" (Dog):', options: ['Hoon', 'Hooni', 'Hoons', 'Hoonan'], correct: 1 },
+    { id: 303, complexity: 5, category: 'grammar_vocabulary', skill: 'grammar', text: 'Past tense marker (masculine singular):', options: ['-ov', '-yi', '-as', '-an'], correct: 0 },
+    { id: 304, complexity: 6, category: 'grammar_vocabulary', skill: 'grammar', text: '"Su chuh" means:', options: ['He is', 'She is', 'It is', 'They are'], correct: 0 },
+    { id: 305, complexity: 3, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Opposite of "Nyeber" (Outside):', options: ['Andar', 'Peth', 'Bon', 'Pat'], correct: 0 },
+    { id: 306, complexity: 7, category: 'grammar_vocabulary', skill: 'grammar', text: 'Ergative Case marker (Agentive):', options: ['-an', '-us', '-as', '-uk'], correct: 0 },
+    { id: 307, complexity: 4, category: 'grammar_vocabulary', skill: 'grammar', text: '"Yath" uses which case?', options: ['Dative', 'Nominative', 'Genitive', 'Ablative'], correct: 0 },
+    { id: 308, complexity: 8, category: 'grammar_vocabulary', skill: 'grammar', text: 'Conjunction "Magar":', options: ['But', 'And', 'Or', 'So'], correct: 0 },
+    { id: 309, complexity: 9, category: 'grammar_vocabulary', skill: 'grammar', text: 'Complex Verb: "Par-an-aav-un" (To teach/cause to read):', options: ['Causative', 'Passive', 'Active', 'Reflexive'], correct: 0 },
+    { id: 310, complexity: 10, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Proverb meaning: "Dour Pohol"?', options: ['Distant shepherd (useless)', 'Strong leader', 'Rich man', 'Lost sheep'], correct: 0 },
 ];
 
 export default function DiagnosticTest() {
     const router = useRouter();
-    const [questions, setQuestions] = useState<typeof QUESTION_POOL>([]);
+    const [questions, setQuestions] = useState<Question[]>([]);
     const [qIndex, setQIndex] = useState(0);
     const [score, setScore] = useState(0);
     const [selected, setSelected] = useState<number | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
     const [loading, setLoading] = useState(true);
+    const pointsRef = React.useRef<Record<string, number>>({});
 
     useEffect(() => {
-        // Load target complexity based on onboarded skill level
         const loadQuestions = () => {
-            let userLevel = 'beginner';
-            const guestSkills = localStorage.getItem('hechun_guest_skills');
+            let selections = {
+                speaking: 'none',
+                reading_writing: 'none',
+                grammar_vocabulary: 'none'
+            };
 
-            if (guestSkills) {
-                const skills = JSON.parse(guestSkills);
-                // Simple heuristic: check highest skill or average
-                // Or check explicit level set in start.tsx (start.tsx maps 'none' -> 'beginner' etc.)
-                // Actually start.tsx defaults to 0 mostly.
-                // Let's assume:
-                // Reading/Speaking > 30 -> Intermediate
-                // > 70 -> Fluent
-                const avg = ((skills.reading || 0) + (skills.speaking || 0)) / 2;
-                if (avg > 70) userLevel = 'fluent';
-                else if (avg > 30) userLevel = 'intermediate';
+            const storedSelections = localStorage.getItem('hechun_guest_skills_selection');
+            if (storedSelections) {
+                try {
+                    selections = JSON.parse(storedSelections);
+                } catch (e) { }
             }
 
-            // Filter Pool
-            let targetComplexityMin = 1;
-            let targetComplexityMax = 3;
+            const getRange = (level: string) => {
+                if (level === 'fluent') return [7, 10];
+                if (level === 'intermediate') return [4, 6];
+                // none or beginner
+                return [1, 4];
+            };
 
-            if (userLevel === 'intermediate') { targetComplexityMin = 4; targetComplexityMax = 7; }
-            if (userLevel === 'fluent') { targetComplexityMin = 7; targetComplexityMax = 10; }
+            const categories: QuestionCategory[] = ['speaking', 'reading_writing', 'grammar_vocabulary'];
+            let finalSet: Question[] = [];
 
-            const filtered = QUESTION_POOL.filter(q => q.complexity >= targetComplexityMin && q.complexity <= targetComplexityMax);
+            categories.forEach(cat => {
+                // @ts-ignore
+                const level = selections[cat] || 'none';
+                const [min, max] = getRange(level);
 
-            // Shuffle and pick 5
-            const shuffled = [...filtered].sort(() => 0.5 - Math.random()).slice(0, 5);
-            setQuestions(shuffled.length > 0 ? shuffled : QUESTION_POOL.slice(0, 5)); // Fallback
+                const pool = QUESTION_POOL
+                    .filter(q => q.category === cat && q.complexity >= min && q.complexity <= max)
+                    .sort(() => 0.5 - Math.random()) // Shuffle pool
+                    .slice(0, 5); // Take 5
+
+                finalSet = [...finalSet, ...pool];
+            });
+
+            // Fallback if empty (shouldn't happen with full pool)
+            if (finalSet.length === 0) {
+                finalSet = QUESTION_POOL.slice(0, 15);
+            }
+
+            // Shuffle Final Set
+            setQuestions(finalSet.sort(() => 0.5 - Math.random()));
             setLoading(false);
         };
 
@@ -85,6 +126,22 @@ export default function DiagnosticTest() {
 
         if (optionIndex === currentQ.correct) {
             setScore(s => s + 1);
+
+            // Weighted Points
+            let points = 1;
+            if (currentQ.complexity >= 7) points = 4;
+            else if (currentQ.complexity > 4) points = 2;
+
+            // Direct Skill Mapping from Question Metadata
+            const earned = pointsRef.current;
+            const skill = currentQ.skill; // Direct skill from question
+
+            if (skill) {
+                earned[skill] = (earned[skill] || 0) + points;
+            } else {
+                // Fallback (should not happen with updated pool)
+                earned.vocabulary = (earned.vocabulary || 0) + points;
+            }
         }
 
         setTimeout(() => {
@@ -100,11 +157,21 @@ export default function DiagnosticTest() {
 
     const finishTest = async () => {
         setIsFinished(true);
-        // NO XP Awarded for Diagnostic (Requested by User)
 
-        // Refine skills based on diagnostic performance? 
-        // Optional: If they got 5/5, maybe bump their cached skills slightly?
-        // For now, keeping it simple: just redirect.
+        // Update Guest Skills (No XP)
+        if (typeof window !== 'undefined') {
+            const existingSkillsStr = localStorage.getItem('hechun_guest_skills');
+            let skills = existingSkillsStr
+                ? JSON.parse(existingSkillsStr)
+                : { reading: 0, speaking: 0, grammar: 0, writing: 0, vocabulary: 0, culture: 0 };
+
+            const earned = pointsRef.current;
+            Object.keys(earned).forEach(key => {
+                skills[key] = (skills[key] || 0) + earned[key];
+            });
+
+            localStorage.setItem('hechun_guest_skills', JSON.stringify(skills));
+        }
 
         setTimeout(() => {
             router.push('/');
@@ -129,10 +196,13 @@ export default function DiagnosticTest() {
                             >
                                 <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-6">
                                     <span>Question {qIndex + 1}/{questions.length}</span>
-                                    <span>Complexity: {currentQ.complexity}</span>
+                                    {/* Hide complexity for user, maybe show Category? */}
+                                    <span className="uppercase tracking-wider text-xs font-bold bg-muted px-2 py-1 rounded">
+                                        {currentQ.category.replace('_', ' & ')}
+                                    </span>
                                 </div>
 
-                                <h2 className="text-2xl font-sans leading-relaxed text-card-foreground mb-8">{currentQ.text}</h2>
+                                <h2 className="text-2xl font-bold leading-relaxed text-card-foreground mb-8">{currentQ.text}</h2>
 
                                 <div className="grid gap-4">
                                     {currentQ.options.map((opt, idx) => (
@@ -149,7 +219,7 @@ export default function DiagnosticTest() {
                                                         : 'bg-muted hover:bg-muted/80 border border-border text-card-foreground'}
                                             `}
                                         >
-                                            {opt}
+                                            <span className="text-kashmiri">{opt}</span>
                                             {isAnswered && idx === currentQ.correct && <Check className="w-5 h-5" />}
                                             {isAnswered && idx === selected && idx !== currentQ.correct && <X className="w-5 h-5" />}
                                         </button>

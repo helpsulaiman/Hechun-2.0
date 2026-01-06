@@ -4,6 +4,9 @@ export interface SkillProfile {
     reading: SkillLevel;
     writing: SkillLevel;
     speaking: SkillLevel;
+    // Extended for compatibility if needed, but Onboarding uses specific flow
+    grammar?: SkillLevel;
+    vocabulary?: SkillLevel;
 }
 
 export interface UserProfile {
@@ -13,6 +16,9 @@ export interface UserProfile {
         reading: number;
         writing: number;
         speaking: number;
+        grammar: number;
+        vocabulary: number;
+        culture: number;
     };
     createdAt: Date;
 }
