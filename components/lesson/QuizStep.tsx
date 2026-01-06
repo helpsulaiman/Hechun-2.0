@@ -76,6 +76,7 @@ export default function QuizStep({ content, showTransliteration, onComplete }: Q
                             onClick={() => handleSelect(idx)}
                             className={`
                                 relative p-6 rounded-2xl border-2 text-xl font-bold transition-all text-left flex flex-col justify-center
+                                ${isSelected
                                     ? 'border-indigo-500 bg-indigo-500/20 text-indigo-900 dark:text-white shadow-lg shadow-indigo-500/10'
                                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:border-white/20'
                                 }
