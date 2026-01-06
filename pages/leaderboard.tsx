@@ -42,19 +42,18 @@ const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ init
                 // Inject Guest Data if not logged in
                 if (!user) {
                     const guestSkillsStr = localStorage.getItem('hechun_guest_skills');
-                    const guestProgressStr = localStorage.getItem('hechun_guest_progress_counts'); // Use counts for more accuracy if available
+                    const guestProgressStr = localStorage.getItem('hechun_guest_progress_counts');
+                    const guestStreakStr = localStorage.getItem('hechun_guest_streak');
 
                     if (guestSkillsStr) {
                         const guestSkills = JSON.parse(guestSkillsStr);
-                        // Calculate total XP roughly from skills (sum of values) or strictly from progress counts if available
-                        // For consistency with 'total_xp' in DB, let's sum the vector values * 10 or similar? 
-                        // Actually, 'total_xp' in DB is often just a stored integer. 
-                        // Let's sum the skill levels for a rough estimate if XP isn't stored explicitly.
-                        // Or better yet, we should store 'guest_xp' or calculate it sum(skills).
-
-                        // Simple XP calculation: sum of skill values. 
-                        // Note: DB values usually around 10-100 per skill. 
-                        const totalXP = (guestSkills.reading || 0) + (guestSkills.speaking || 0) + (guestSkills.grammar || 0) + (guestSkills.writing || 0);
+                        // Simplified XP for guest: just sum of skills
+                        const totalXP = Math.floor(
+                            (guestSkills.reading || 0) +
+                            (guestSkills.speaking || 0) +
+                            (guestSkills.grammar || 0) +
+                            (guestSkills.writing || 0)
+                        );
 
                         // Lesson count
                         let lessonCount = 0;
@@ -63,14 +62,23 @@ const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ init
                             lessonCount = Object.keys(counts).length;
                         }
 
+                        // Streak
+                        let streak = 0;
+                        if (guestStreakStr) {
+                            try {
+                                const parsed = JSON.parse(guestStreakStr);
+                                streak = parsed.currentStreak || 0;
+                            } catch (e) { streak = 0; }
+                        }
+
                         const guestUser: UserProfile = {
                             id: 'guest-local',
                             user_id: 'guest',
                             username: 'You (Guest)',
                             avatar_url: null,
-                            total_xp: totalXP, // This might be low compared to DB if DB is accumulating differently, but it's a start
+                            total_xp: totalXP,
                             lessons_completed: lessonCount,
-                            streak_days: 1, // Assume 1 for guest active today
+                            streak_days: streak || 1, // Default to 1 if active today
                             is_admin: false,
                             created_at: new Date().toISOString(),
                             email: null,
@@ -218,7 +226,7 @@ const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ init
                             return null;
                         })()}
 
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden overflow-x-auto">
                             {users.length === 0 ? (
                                 <div className="p-8 text-center text-gray-500">
                                     No data yet. Be the first to complete a lesson!

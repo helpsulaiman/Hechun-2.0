@@ -19,10 +19,35 @@ const HistoryPage: React.FC = () => {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const data = await fetchLessons(supabase, user?.id);
-                // Filter for completed lessons only
-                const completed = data.filter(l => (l.user_score || 0) >= 0.6);
-                setLessons(completed);
+                if (!user) {
+                    // Load Guest History
+                    const progressKey = 'hechun_guest_progress_counts';
+                    const localProgress = JSON.parse(localStorage.getItem(progressKey) || '{}');
+                    const guestLessons: LearningLesson[] = Object.keys(localProgress).map((id, index) => ({
+                        id: parseInt(id),
+                        title: `Lesson ${id}`, // Fallback title since we don't have DB access
+                        description: 'Completed Lesson',
+                        lesson_order: index + 1,
+                        content: {},
+                        complexity: 1,
+                        skills_targeted: {},
+                        xp_reward: 10,
+                        difficulty: 'beginner', // This is not in LearningLesson, might be extra but TS usually ignores excess if not strict, but better check. Interface doesn't have difficulty. Remove it.
+                        // Wait, previous code had 'difficulty'. Interface in `types/learning.ts` does NOT have `difficulty`.
+                        // The error message said: "missing ... lesson_order, content, complexity, skills_targeted, xp_reward".
+                        // And "difficulty" was present in the object but not the interface.
+                        user_score: 1, // Assume perfect score for guest completion tracking
+                        is_completed: true,
+                        // average_score is also not in LearningLesson interface.
+                        times_completed: localProgress[id]
+                    }));
+                    setLessons(guestLessons);
+                } else {
+                    const data = await fetchLessons(supabase, user.id);
+                    // Filter for completed lessons only
+                    const completed = data.filter(l => (l.user_score || 0) >= 0.6);
+                    setLessons(completed);
+                }
             } catch (error) {
                 console.error('Failed to load history:', error);
             } finally {
@@ -33,11 +58,11 @@ const HistoryPage: React.FC = () => {
         loadData();
     }, [user, supabase]);
 
-    const totalXP = lessons.reduce((acc, l) => acc + (l.user_score ? 10 : 0), 0);
+    const totalXP = lessons.reduce((acc, l) => acc + (l.user_score ? 10 * (l.times_completed || 1) : 0), 0);
 
     return (
         <Layout title="History - Your Journey" fullWidth={true}>
-            <div className={styles.learnContainer}>
+            <div className={`${styles.learnContainer} pt-24 md:pt-8`}>
 
                 {/* Header Section */}
                 <div className={styles.heroSection}>

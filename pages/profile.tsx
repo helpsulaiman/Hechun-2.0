@@ -34,6 +34,10 @@ const ProfilePage: React.FC = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState('');
 
+    // Reset Progress State
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+    const [resetting, setResetting] = useState(false);
+
     // Progress State
     const [stats, setStats] = useState({ totalXP: 0, lessonsCompleted: 0 });
     const [skills, setSkills] = useState<any>({ reading: 0, grammar: 0, listening: 0, speaking: 0 });
@@ -81,6 +85,13 @@ const ProfilePage: React.FC = () => {
             const totalXP = lessonsCompleted * 10;
 
             setStats({ totalXP, lessonsCompleted });
+
+            // Load Guest Skills
+            const skillsKey = 'hechun_guest_skills';
+            const localSkills = JSON.parse(localStorage.getItem(skillsKey) || '{}');
+            if (Object.keys(localSkills).length > 0) {
+                setSkills(localSkills);
+            }
         } catch (e) {
             console.error("Error loading guest progress", e);
         }
@@ -153,6 +164,29 @@ const ProfilePage: React.FC = () => {
     const handleLogout = async () => {
         await supabase.auth.signOut();
         router.push('/');
+    };
+
+    const handleResetProgress = async () => {
+        setResetting(true);
+        try {
+            if (user) {
+                // Server-side reset
+                const res = await fetch('/api/reset-progress', { method: 'POST' });
+                if (!res.ok) throw new Error('Failed to reset');
+            }
+
+            // Always clear local (for mix scenarios or guest)
+            localStorage.removeItem('hechun_guest_skills');
+            localStorage.removeItem('hechun_guest_progress_counts');
+
+            window.location.href = '/onboarding/start'; // Redirect to onboarding
+        } catch (error) {
+            console.error("Reset failed", error);
+            alert("Failed to reset progress. Please try again.");
+        } finally {
+            setResetting(false);
+            setIsResetModalOpen(false);
+        }
     };
 
     const handleDeleteAccount = async (e: React.FormEvent) => {
@@ -366,72 +400,120 @@ const ProfilePage: React.FC = () => {
                 </div>
 
                 {/* Danger Zone */}
-                {user && (
-                    <section className="pt-8 border-t border-[var(--border-color)]">
-                        <h2 className="text-2xl font-bold mb-6 text-red-600">DELETE ACCOUNT</h2>
+                <section className="pt-8 border-t border-[var(--border-color)]">
+                    <h2 className="text-2xl font-bold mb-6 text-red-600">DANGER ZONE</h2>
+
+                    <div className="space-y-6">
+                        {/* Reset Progress */}
                         <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-6 flex justify-between items-center">
                             <div>
-                                <h3 className="font-semibold text-red-900 dark:text-red-200">Delete Account</h3>
+                                <h3 className="font-semibold text-red-900 dark:text-red-200">Reset Progress</h3>
                                 <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                                    Permanently remove your account and all of your content. This action is not reversible.
+                                    Clear all your lesson history and XP. Your account remains active.
                                 </p>
                             </div>
-                            <Dialog.Root open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                            <Dialog.Root open={isResetModalOpen} onOpenChange={setIsResetModalOpen}>
                                 <Dialog.Trigger asChild>
-                                    <button className="btn btn-danger text-white hover:bg-red-700">Delete Account</button>
+                                    <button className="btn btn-warning text-white hover:bg-orange-600 bg-orange-500 border-none">Reset Progress</button>
                                 </Dialog.Trigger>
                                 <Dialog.Portal>
                                     <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 fade-in" />
                                     <Dialog.Content className="fixed top-1/2 left-1/2 max-w-md w-full -translate-x-1/2 -translate-y-1/2 bg-[var(--bg-card)] p-6 rounded-lg shadow-xl z-50 border border-[var(--border-color)] slide-up-content">
-                                        <Dialog.Title className="text-xl font-bold mb-4 text-[var(--text-primary)]">Confirm Account Deletion</Dialog.Title>
+                                        <Dialog.Title className="text-xl font-bold mb-4 text-[var(--text-primary)]">Confirm Reset</Dialog.Title>
                                         <Dialog.Description className="text-[var(--text-secondary)] mb-6">
-                                            Please enter your password to confirm you want to permanently delete your account.
+                                            Are you sure you want to reset your progress? This will delete all lesson history and XP.
                                             <br /><br />
-                                            <strong className="text-red-500">Warning: This cannot be undone.</strong>
+                                            <strong className="text-red-500">This action cannot be undone.</strong>
                                         </Dialog.Description>
 
-                                        <form onSubmit={handleDeleteAccount} className="space-y-4">
-                                            {deleteError && (
-                                                <div className="bg-red-100 text-red-600 p-3 rounded text-sm">
-                                                    {deleteError}
-                                                </div>
-                                            )}
-
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Password</label>
-                                                <input
-                                                    type="password"
-                                                    className="search-input w-full"
-                                                    placeholder="Enter your password"
-                                                    value={deletePassword}
-                                                    onChange={e => setDeletePassword(e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div className="flex justify-end gap-3 mt-6">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsDeleteModalOpen(false)}
-                                                    className="btn btn-secondary"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    type="submit"
-                                                    className="btn btn-danger text-white"
-                                                    disabled={isDeleting}
-                                                >
-                                                    {isDeleting ? 'Deleting...' : 'Confirm Delete'}
-                                                </button>
-                                            </div>
-                                        </form>
+                                        <div className="flex justify-end gap-3 mt-6">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsResetModalOpen(false)}
+                                                className="btn btn-secondary"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleResetProgress}
+                                                className="btn btn-danger text-white"
+                                                disabled={resetting}
+                                            >
+                                                {resetting ? 'Resetting...' : 'Yes, Reset Everything'}
+                                            </button>
+                                        </div>
                                     </Dialog.Content>
                                 </Dialog.Portal>
                             </Dialog.Root>
                         </div>
-                    </section>
-                )}
+
+                        {/* Delete Account */}
+                        {user && (
+                            <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-6 flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-semibold text-red-900 dark:text-red-200">Delete Account</h3>
+                                    <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                                        Permanently remove your account and all of your content. This action is not reversible.
+                                    </p>
+                                </div>
+                                <Dialog.Root open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                                    <Dialog.Trigger asChild>
+                                        <button className="btn btn-danger text-white hover:bg-red-700">Delete Account</button>
+                                    </Dialog.Trigger>
+                                    <Dialog.Portal>
+                                        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 fade-in" />
+                                        <Dialog.Content className="fixed top-1/2 left-1/2 max-w-md w-full -translate-x-1/2 -translate-y-1/2 bg-[var(--bg-card)] p-6 rounded-lg shadow-xl z-50 border border-[var(--border-color)] slide-up-content">
+                                            <Dialog.Title className="text-xl font-bold mb-4 text-[var(--text-primary)]">Confirm Account Deletion</Dialog.Title>
+                                            <Dialog.Description className="text-[var(--text-secondary)] mb-6">
+                                                Please enter your password to confirm you want to permanently delete your account.
+                                                <br /><br />
+                                                <strong className="text-red-500">Warning: This cannot be undone.</strong>
+                                            </Dialog.Description>
+
+                                            <form onSubmit={handleDeleteAccount} className="space-y-4">
+                                                {deleteError && (
+                                                    <div className="bg-red-100 text-red-600 p-3 rounded text-sm">
+                                                        {deleteError}
+                                                    </div>
+                                                )}
+
+                                                <div>
+                                                    <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Password</label>
+                                                    <input
+                                                        type="password"
+                                                        className="search-input w-full"
+                                                        placeholder="Enter your password"
+                                                        value={deletePassword}
+                                                        onChange={e => setDeletePassword(e.target.value)}
+                                                        required
+                                                    />
+                                                </div>
+
+                                                <div className="flex justify-end gap-3 mt-6">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsDeleteModalOpen(false)}
+                                                        className="btn btn-secondary"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        type="submit"
+                                                        className="btn btn-danger text-white"
+                                                        disabled={isDeleting}
+                                                    >
+                                                        {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </Dialog.Content>
+                                    </Dialog.Portal>
+                                </Dialog.Root>
+                            </div>
+                        )}
+                    </div>
+                </section>
 
                 <div className="pt-8 border-t border-[var(--border-color)]">
                     <Link href="/" className="btn btn-secondary btn-sm">

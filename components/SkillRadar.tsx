@@ -70,7 +70,8 @@ export default function SkillRadar({ skills, size = 300, max = 100 }: SkillRadar
                         points={pointsStr}
                         fill="none"
                         stroke="currentColor"
-                        className="text-gray-200 dark:text-gray-700/50"
+                        className="text-border" // Uses border variable via tailwind class if configured, otherwise we use style
+                        style={{ color: 'var(--border)' }}
                         strokeWidth="1"
                     />
                 ))}
@@ -84,7 +85,7 @@ export default function SkillRadar({ skills, size = 300, max = 100 }: SkillRadar
                             x1={center} y1={center}
                             x2={end.x} y2={end.y}
                             stroke="currentColor"
-                            className="text-gray-200 dark:text-gray-700"
+                            style={{ color: 'var(--border)' }}
                         />
                     );
                 })}
@@ -93,7 +94,7 @@ export default function SkillRadar({ skills, size = 300, max = 100 }: SkillRadar
                 <motion.polygon
                     points={polygonPoints}
                     fill="url(#radarGradient)"
-                    stroke="#6366f1"
+                    stroke="var(--primary)"
                     strokeWidth="2"
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -106,7 +107,7 @@ export default function SkillRadar({ skills, size = 300, max = 100 }: SkillRadar
                         key={`dot-${i}`}
                         cx={pt.x} cy={pt.y}
                         r="4"
-                        fill="#4f46e5"
+                        fill="var(--primary)"
                         className="drop-shadow-lg"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -128,7 +129,7 @@ export default function SkillRadar({ skills, size = 300, max = 100 }: SkillRadar
                             x={lx} y={ly}
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            className="fill-gray-600 dark:fill-gray-300 text-xs font-bold uppercase tracking-wider"
+                            className="fill-muted-foreground text-xs font-bold uppercase tracking-wider"
                         >
                             {axis.label}
                         </text>

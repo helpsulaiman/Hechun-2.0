@@ -39,10 +39,8 @@
     font-size: 2.5rem;
     font-weight: 800;
     margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, var(--color-primary) 0%, #d97706 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--primary);
+    /* Removed hardcoded gradient to use primary color */
 }
 
 .heroSubtitle {
@@ -100,7 +98,7 @@
     border: 1px solid var(--border);
     padding: 0.75rem 2rem;
     border-radius: 999px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .statItem {
@@ -108,7 +106,7 @@
     align-items: center;
     gap: 0.5rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--card-foreground);
 }
 
 /* Path Layout */
@@ -161,7 +159,7 @@
     z-index: -1;
     background-repeat: no-repeat;
     opacity: 0.4;
-    border: 0px dashed var(--color-primary);
+    border: 0px dashed var(--primary);
 }
 
 /* Logic for alternating arrows */
@@ -216,8 +214,8 @@
 }
 
 .levelNode.unlocked {
-    border-color: var(--color-primary);
-    background: linear-gradient(145deg, var(--card), var(--background));
+    border-color: var(--primary);
+    background: var(--card);
 }
 
 .levelNode.completed {
@@ -249,9 +247,10 @@
 }
 
 .lessonOrder {
-    font-size: 1.7rem;
-    font-weight: 800;
-    line-height: 1;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
 }
 
 .starContainer {
@@ -347,7 +346,7 @@
     border-radius: 1.5rem;
     padding: 2rem;
     border: 1px solid var(--border);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .progressBarContainer {
@@ -375,7 +374,7 @@
 .promptText {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--foreground);
+    color: var(--card-foreground);
     text-align: center;
     margin-bottom: 2rem;
     line-height: 1.3;
@@ -384,7 +383,7 @@
 .sentenceText {
     font-size: 2.5rem;
     font-weight: 700;
-    color: var(--color-primary);
+    color: var(--primary);
     text-align: center;
     margin-bottom: 2rem;
     line-height: 1.2;
@@ -420,9 +419,9 @@
 }
 
 .mcqOption.selected {
-    border-color: var(--color-primary);
+    border-color: var(--primary);
     background-color: var(--accent);
-    color: var(--color-primary);
+    color: var(--primary);
 }
 
 .mcqOption.correct {

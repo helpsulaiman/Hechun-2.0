@@ -79,7 +79,7 @@ export default function GuestLoginNudge({ className = "", show: forceShow, onDis
 
                     <div className="flex flex-col gap-2 min-w-[140px]">
                         <button
-                            onClick={() => router.push('/login')}
+                            onClick={() => router.push('/auth/login')}
                             className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/20 text-sm"
                         >
                             <LogIn className="w-4 h-4" />

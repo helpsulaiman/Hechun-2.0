@@ -30,6 +30,9 @@ const HechunLoginPage: React.FC = () => {
 
             // Migrate guest progress if exists
             try {
+                // 1. Ensure User Profile exists (Trigger might be slow or relying on API access)
+                await fetch('/api/user');
+
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session?.user) {
                     // Dynamic import to avoid SSR issues if any, or just direct

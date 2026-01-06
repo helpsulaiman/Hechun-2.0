@@ -21,7 +21,7 @@ interface DialogueLessonProps {
 
 export default function DialogueLesson({ content, showTransliteration }: DialogueLessonProps) {
     return (
-        <div className="space-y-8 max-w-2xl mx-auto">
+        <div className="space-y-8 max-w-[95%] mx-auto w-full">
             {content.lines.map((line, idx) => {
                 const isLeft = line.speaker === 'A';
                 return (
@@ -48,27 +48,27 @@ function DialogueBubble({ line, isLeft, delay, showTransliteration }: { line: Di
             transition={{ delay }}
             className={`flex flex-col ${isLeft ? 'items-start' : 'items-end'}`}
         >
-            <div className="text-xs text-gray-500 mb-1 px-2">Speaker {line.speaker}</div>
+            <div className="text-xs text-muted-foreground mb-1 px-2">Speaker {line.speaker}</div>
             <div
                 className={`
-                    max-w-[80%] p-4 rounded-2xl relative group cursor-pointer transition-colors border-2
+                    max-w-[60%] p-4 rounded-2xl relative group cursor-pointer transition-colors border-2
                     ${isLeft
-                        ? 'bg-indigo-600 text-white rounded-tl-none border-transparent'
-                        : 'bg-gray-700 text-gray-100 rounded-tr-none border-transparent'}
-                    ${status === 'playing' ? 'border-white/50 animate-pulse' : ''}
-                    ${status === 'error' ? 'border-red-500/50' : ''}
+                        ? 'bg-primary text-primary-foreground rounded-tl-none border-transparent'
+                        : 'bg-muted text-muted-foreground rounded-tr-none border-transparent'}
+                    ${status === 'playing' ? 'border-primary/50 animate-pulse' : ''}
+                    ${status === 'error' ? 'border-destructive/50' : ''}
                 `}
                 onClick={() => play()}
             >
                 <div className="text-lg font-medium mb-1">{line.text}</div>
 
                 {showTransliteration && line.transliteration && (
-                    <div className="text-sm font-mono text-white/70 mb-1 italic">
+                    <div className="text-sm font-mono opacity-80 mb-1 italic">
                         {line.transliteration}
                     </div>
                 )}
 
-                <div className={`text-sm ${isLeft ? 'text-indigo-200' : 'text-gray-400'}`}>
+                <div className={`text-sm opacity-90`}>
                     {line.meaning}
                 </div>
 

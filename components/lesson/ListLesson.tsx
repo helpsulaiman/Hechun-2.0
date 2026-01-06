@@ -31,11 +31,11 @@ function ListItemCard({ item, idx }: { item: ListItem, idx: number }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors group"
+            className="flex items-center justify-between p-4 bg-muted hover:bg-muted/80 border border-border rounded-xl transition-colors group"
         >
             <div>
-                <div className="text-xl font-bold text-white mb-1 text-kashmiri">{item.text}</div>
-                <div className="text-gray-400">{item.meaning}</div>
+                <div className="text-xl font-bold text-foreground mb-1 text-kashmiri">{item.text}</div>
+                <div className="text-muted-foreground">{item.meaning}</div>
             </div>
             {/* Standardized Player */}
             <AudioPlayer src={item.audio || ''} size="md" />

@@ -52,10 +52,9 @@
 
 .flashcard {
     background-color: var(--card);
-    /* Glassy card */
-    border-radius: 1.5rem;
+    border-radius: var(--radius, 1.5rem);
     border: 1px solid var(--border);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -89,14 +88,13 @@
     font-size: 3rem;
     font-weight: 600;
     margin-bottom: 0rem;
-    color: var(--foreground);
+    color: var(--card-foreground);
 }
 
 .letterDisplay {
     font-size: 6rem;
     font-weight: 700;
-    color: var(--color-primary);
-    /* Gold Text */
+    color: var(--primary);
     margin: 1rem 0;
     line-height: 1;
     padding-bottom: 2rem;
@@ -115,7 +113,7 @@
 }
 
 .soundButton:hover {
-    color: var(--color-primary);
+    color: var(--primary);
     background-color: var(--secondary);
     transform: scale(1.1);
 }
@@ -127,7 +125,6 @@
     padding: 2.5rem;
     flex: 1;
     background-color: var(--card);
-    /* Consistent bg */
 }
 
 .exampleHeader {
@@ -143,7 +140,7 @@
 .pronunciationText {
     font-size: 1.5rem;
     font-style: italic;
-    color: var(--foreground);
+    color: var(--card-foreground);
     text-align: center;
     margin-bottom: 1rem;
 }
@@ -159,8 +156,7 @@
     font-weight: 600;
     display: inline-block;
     margin-right: 1rem;
-    color: var(--color-primary);
-    /* Gold */
+    color: var(--primary);
 }
 
 .exampleWordEnglish {

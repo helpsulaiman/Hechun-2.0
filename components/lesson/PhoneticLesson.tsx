@@ -49,18 +49,17 @@ function PhoneticCard({ item }: { item: PhoneticItem }) {
             whileTap={{ scale: 0.95 }}
             onClick={() => play()}
             className={`
-                aspect-square bg-indigo-50/50 border-2 border-indigo-100 rounded-2xl flex flex-col items-center justify-center p-4 transition-colors group relative overflow-hidden
-                dark:bg-indigo-500/10 dark:border-indigo-500/20
+                aspect-square bg-card border-2 border-border rounded-2xl flex flex-col items-center justify-center p-4 transition-colors group relative overflow-hidden
                 ${status === 'playing'
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20'
-                    : 'hover:bg-indigo-100 dark:hover:bg-indigo-500/20 hover:border-indigo-300 dark:hover:border-indigo-500/50'
+                    ? 'border-primary bg-accent'
+                    : 'hover:bg-muted hover:border-primary/50'
                 }
-                ${status === 'error' ? 'border-red-500/30 bg-red-50 dark:bg-red-500/10' : ''}
+                ${status === 'error' ? 'border-destructive/30 bg-destructive/10' : ''}
             `}
         >
-            <span className="text-8xl mb-4 font-bold text-gray-900 dark:text-white text-kashmiri">{item.char}</span>
-            <span className="text-indigo-600 dark:text-indigo-300 font-medium">{item.name}</span>
-            <div className={`mt-4 ${status === 'playing' ? 'text-indigo-600 dark:text-indigo-400 animate-pulse' : 'text-indigo-400 opacity-50 group-hover:opacity-100'}`}>
+            <span className="text-8xl mb-4 font-bold text-foreground text-kashmiri">{item.char}</span>
+            <span className="text-primary font-medium">{item.name}</span>
+            <div className={`mt-4 ${status === 'playing' ? 'text-primary animate-pulse' : 'text-muted-foreground opacity-50 group-hover:opacity-100'}`}>
                 {status === 'error' ? <AlertCircle className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
             </div>
         </motion.button>

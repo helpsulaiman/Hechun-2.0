@@ -10,7 +10,7 @@ export async function middleware(req: NextRequest) {
 
     if (req.nextUrl.pathname.startsWith('/dashboard')) {
         if (!session) {
-            return NextResponse.redirect(new URL('/login', req.url));
+            return NextResponse.redirect(new URL('/adminLogin', req.url));
         }
 
         // Check admin status - use maybeSingle() to handle missing rows

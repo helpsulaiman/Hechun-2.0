@@ -1,12 +1,12 @@
 .bubble-menu {
   left: 0;
   right: 0;
-  top: 2em;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 2em;
+  padding: 0 0.8em;
   pointer-events: none;
   z-index: 99;
 }
@@ -59,20 +59,22 @@
 }
 
 .bubble-menu .logo-content {
-  --logo-max-height: 70%;
+  --logo-max-height: 100%;
   --logo-max-width: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 50px;
+  width: auto;
   height: 100%;
 }
 
 .bubble-menu .logo-content>.bubble-logo,
 .bubble-menu .logo-content>img,
 .bubble-menu .logo-content>svg {
-  max-height: var(--logo-max-height);
-  max-width: var(--logo-max-width);
+  max-height: 100%;
+  max-width: 100%;
+  height: auto;
+  width: auto;
 }
 
 .bubble-menu .menu-btn {
@@ -105,6 +107,13 @@
 
 .bubble-menu .menu-btn.open .menu-line:first-child {
   transform: translateY(4px) rotate(45deg);
+}
+
+@media (max-width: 768px) {
+  .bubble-menu {
+    gap: 6px;
+    padding: 0 0.5em;
+  }
 }
 
 .bubble-menu .menu-btn.open .menu-line:last-child {

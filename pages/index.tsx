@@ -69,11 +69,11 @@ export default function HomePage() {
 function WelcomeView() {
   return (
     <Layout title="Welcome to Hechun" fullWidth>
-      <div className="min-h-[85vh] flex flex-col items-center justify-center relative overflow-hidden bg-white dark:bg-slate-950">
+      <div className="min-h-[85vh] flex flex-col items-center justify-center relative overflow-hidden bg-background">
         {/* Background Elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-          <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-[40%] -right-[10%] w-[40%] h-[60%] bg-purple-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-[40%] -right-[10%] w-[40%] h-[60%] bg-secondary/10 rounded-full blur-3xl"></div>
         </div>
 
         <div className="z-10 container mx-auto px-4 text-center max-w-4xl relative">
@@ -90,35 +90,35 @@ function WelcomeView() {
             </div>
           </div>
 
-          <h1 className="text-4xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
-            Learn Kashmiri the <span className="text-indigo-500">Adaptive</span> Way.
+          <h1 className="text-4xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground">
+            Learn Kashmiri the <span className="text-primary">Adaptive</span> Way.
           </h1>
 
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-10 leading-relaxed max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-10 leading-relaxed max-w-2xl mx-auto">
             Hečhun creates a personalized learning path just for you.
             Whether you want to speak, read, or write, we adapt to your level instantly.
           </p>
 
           <Link
             href="/onboarding/start"
-            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-full text-lg font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 hover:scale-105 transition-all duration-300"
+            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-full text-lg font-bold shadow-lg shadow-primary/30 hover:bg-primary/90 hover:scale-105 transition-all duration-300"
           >
             <Sparkles className="w-5 h-5" />
             Start Your Journey
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
 
-          <div className="mt-12 flex justify-center gap-8 text-sm text-gray-500 dark:text-gray-400">
+          <div className="mt-12 flex justify-center gap-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-400"></div>
+              <div className="w-2 h-2 rounded-full bg-chart-2"></div>
               Dynamic Path
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+              <div className="w-2 h-2 rounded-full bg-chart-1"></div>
               Skill Tracking
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+              <div className="w-2 h-2 rounded-full bg-chart-3"></div>
               Cultural Immersion
             </div>
           </div>
@@ -202,11 +202,11 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
     <Layout title="Your Path">
       <div className="container mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-            <Map className="w-8 h-8 text-indigo-500" />
+          <h1 className="text-3xl font-bold flex items-center gap-2 text-foreground">
+            <Map className="w-8 h-8 text-primary" />
             Your Learning Path
           </h1>
-          <div className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-4 py-1 rounded-full text-sm font-medium">
+          <div className="bg-primary/10 text-primary px-4 py-1 rounded-full text-sm font-medium">
             Beta v2.0
           </div>
         </div>
@@ -215,28 +215,28 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
 
           {/* Left Col: Recommendation */}
           <div>
-            <h2 className="text-xl font-bold mb-6 text-gray-500 uppercase text-sm tracking-widest pl-2">Current Objective</h2>
+            <h2 className="text-xl font-bold mb-6 text-muted-foreground uppercase text-sm tracking-widest pl-2">Current Objective</h2>
             {loading ? (
               <div className="flex justify-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
             ) : nextLesson ? (
               <div className="max-w-2xl mx-auto flex flex-col gap-6">
-                <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group hover:scale-[1.02] transition-transform cursor-pointer">
-                  <div className="absolute top-0 right-0 p-4 opacity-20">
+                <div className="bg-card rounded-3xl p-8 text-card-foreground shadow-2xl relative overflow-hidden group md:hover:scale-[1.02] transition-transform cursor-pointer border border-border">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
                     <Sparkles className="w-32 h-32" />
                   </div>
 
                   <div className="relative z-10">
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4 inline-block">
+                    <span className="bg-primary/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4 inline-block text-primary">
                       Next Up
                     </span>
                     <h2 className="text-3xl font-bold mb-2">{nextLesson.title}</h2>
-                    <p className="text-indigo-200 mb-6">{nextLesson.description}</p>
+                    <p className="text-muted-foreground mb-6">{nextLesson.description}</p>
 
                     <div className="flex items-center gap-4">
                       <Link href={`/lesson/${nextLesson.id}`}>
-                        <button className="bg-white text-indigo-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-100 transition-colors shadow-lg">
+                        <button className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-lg">
                           Start Lesson <ArrowRight className="w-5 h-5" />
                         </button>
                       </Link>
@@ -250,16 +250,16 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center min-h-[300px] bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-8 text-center shadow-sm">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                  <Sparkles className="w-8 h-8 text-yellow-500 dark:text-yellow-400" />
+              <div className="flex flex-col items-center justify-center min-h-[300px] bg-card border border-border rounded-3xl p-8 text-center shadow-sm">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Sparkles className="w-8 h-8 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">No Lessons Available</h2>
-                <p className="text-gray-500 dark:text-gray-400 max-w-md">
+                <h2 className="text-2xl font-bold mb-2 text-card-foreground">No Lessons Available</h2>
+                <p className="text-muted-foreground max-w-md">
                   We couldn't find a path for you yet.
                   (Did you run the seed script?)
                 </p>
-                <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg text-xs font-mono text-left text-gray-800 dark:text-gray-300">
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg text-xs font-mono text-left text-muted-foreground">
                   npm run dev<br />
                   curl http://localhost:3000/api/dev/seed
                 </div>
@@ -269,8 +269,8 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
 
 
           {/* Right Col: Stats */}
-          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-8 shadow-sm">
-            <h2 className="text-xl font-bold mb-4 text-center text-gray-900 dark:text-white">Your Skill Profile</h2>
+          <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
+            <h2 className="text-xl font-bold mb-4 text-center text-card-foreground">Your Skill Profile</h2>
             {(() => {
               const skills = userSkills || guestSkills || {};
               return (
@@ -283,44 +283,13 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
                 />
               );
             })()}
-            <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            <div className="mt-6 text-center text-sm text-muted-foreground">
               Your adaptive profile updates after every lesson.
             </div>
           </div>
         </div>
 
-        <div className="mt-12 text-center">
-          {!showResetConfirm ? (
-            <button
-              onClick={() => setShowResetConfirm(true)}
-              className="text-sm text-red-500 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 underline opacity-60 hover:opacity-100 transition-all font-medium py-2 px-4 rounded hover:bg-red-50 dark:hover:bg-red-900/10"
-            >
-              Reset Progress
-            </button>
-          ) : (
-            <div className="inline-flex flex-col items-center bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-sm mx-auto animate-in zoom-in-50 duration-200">
-              <p className="text-red-700 dark:text-red-200 font-bold mb-2">Are you absolutely sure?</p>
-              <p className="text-sm text-red-600 dark:text-red-300 mb-4">
-                This will permanently delete all your progress, XP, and lesson history. This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowResetConfirm(false)}
-                  className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleResetProgress}
-                  disabled={resetting}
-                  className="px-3 py-1.5 text-sm bg-red-600 text-white font-bold rounded hover:bg-red-700 disabled:opacity-50"
-                >
-                  {resetting ? 'Deleting...' : 'Yes, Reset Everything'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+
       </div>
     </Layout>
   );

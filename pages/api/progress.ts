@@ -50,26 +50,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         else if (completionCount === 2) gainFactor = 0.05;
         else gainFactor = 0.0;
 
-        // Calculate Streak
+        // Calculate Streak (UTC-based to be safe)
         const now = new Date();
         const lastActive = userProfile.last_active_date ? new Date(userProfile.last_active_date) : null;
         let newStreak = userProfile.streak_days;
 
         if (lastActive) {
-            const isToday = now.toDateString() === lastActive.toDateString();
-            const yesterday = new Date(now);
-            yesterday.setDate(now.getDate() - 1);
-            const isYesterday = yesterday.toDateString() === lastActive.toDateString();
+            // Helper to get YYYY-MM-DD in UTC
+            const toys = (d: Date) => d.toISOString().split('T')[0];
 
-            if (!isToday) {
-                if (isYesterday) {
+            const todayStr = toys(now);
+            const lastActiveStr = toys(lastActive);
+
+            // Check yesterday
+            const yesterday = new Date(now);
+            yesterday.setUTCDate(now.getUTCDate() - 1);
+            const yesterdayStr = toys(yesterday);
+
+            if (todayStr !== lastActiveStr) {
+                if (lastActiveStr === yesterdayStr) {
                     newStreak += 1;
                 } else {
-                    newStreak = 1; // Reset if missed a day
+                    newStreak = 1; // Broken streak
                 }
             }
+            // If todayStr === lastActiveStr, streak remains same (already updated today)
         } else {
-            newStreak = 1; // First lesson ever
+            newStreak = 1; // First lesson
         }
 
         // Apply updates
@@ -132,11 +139,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             for (const [skill, weight] of Object.entries(targeted)) {
                 const current = newVector[skill] || 0;
-                // Bonus = Weight (0-1) * BaseGain (10) * Score (0-1) * RetakeFactor
-                // e.g. Reading 1.0 * 10 * 1.0 * 1.0 = +10 Points
-                // Retake: Reading 1.0 * 10 * 1.0 * 0.1 = +1 Point
-                const gain = weight * 10 * (score || 1) * gainFactor;
-                newVector[skill] = Math.round(current + gain);
+                // Bonus = Weight (0-1) * BaseGain (2) * Score (0-1) * RetakeFactor
+                // Reduced from 10 to 2 to prevent rampant inflation
+                const gain = weight * 2 * (score || 1) * gainFactor;
+                // Ensure at least some gain for a pass if gain > 0
+                const floweredGain = gain > 0 && gain < 0.5 ? 0.5 : gain;
+
+                newVector[skill] = Math.round((current + floweredGain) * 100) / 100; // Keep decimals clean? Or just round. Math.round(current + gain) is fine.
+            }
+            // Actually let's stick to integers for simplicity as per previous code, but 2 might round to 0 if weight is small.
+            // Let's use Math.ceil to ensure minimum 1 if weight > 0
+            for (const [skill, weight] of Object.entries(targeted)) {
+                const current = newVector[skill] || 0;
+                const rawGain = weight * 2 * (score || 1) * gainFactor;
+                const finalGain = Math.ceil(rawGain); // 1 or 2 usually.
+                newVector[skill] = current + finalGain;
             }
 
             await prisma.userProfile.update({

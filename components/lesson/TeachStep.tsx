@@ -30,25 +30,25 @@ export default function TeachStep({ content, showTransliteration }: TeachStepPro
                 />
             )}
 
-            <h2 className="text-3xl font-bold text-white dark:text-white text-gray-900">{content.title}</h2>
+            <h2 className="text-3xl font-bold text-foreground">{content.title}</h2>
 
             {/* Main Content Card */}
-            <div className="bg-white/5 border border-white/10 dark:bg-white/5 dark:border-white/10 bg-gray-50 border-gray-200 rounded-2xl p-8 w-full max-w-lg relative lg:min-h-[250px] flex flex-col justify-center">
+            <div className="bg-card border border-border rounded-2xl p-8 w-full max-w-lg relative lg:min-h-[250px] flex flex-col justify-center">
                 {content.kashmiri_text && (
                     <div className="mb-6">
-                        <span className="text-6xl md:text-7xl font-bold text-kashmiri text-indigo-600 dark:text-indigo-300 drop-shadow-lg block leading-relaxed mb-2">
+                        <span className="text-6xl md:text-7xl font-bold text-primary drop-shadow-lg block leading-relaxed mb-2 text-kashmiri">
                             {content.kashmiri_text}
                         </span>
                     </div>
                 )}
 
                 {/* Content Body */}
-                <div className="prose prose-indigo dark:prose-invert max-w-none text-lg leading-relaxed text-gray-700 dark:text-gray-200">
+                <div className="prose dark:prose-invert max-w-none text-lg leading-relaxed text-card-foreground">
                     {/* We'd ideally use a markdown parser here. For MVP, we'll assume it's just text */}
                     <p>{content.description}</p>
 
                     {showTransliteration && content.transliteration && (
-                        <p className="mt-4 text-indigo-600 dark:text-indigo-300 font-mono text-base border-t border-gray-200 dark:border-white/10 pt-4">
+                        <p className="mt-4 text-primary font-mono text-base border-t border-border pt-4">
                             {content.transliteration}
                         </p>
                     )}
@@ -58,7 +58,7 @@ export default function TeachStep({ content, showTransliteration }: TeachStepPro
                     <div className="mt-6 flex justify-center">
                         <button
                             onClick={playAudio}
-                            className={`p-4 rounded-full transition-all ${isPlaying ? 'bg-indigo-500 text-white scale-110 shadow-lg shadow-indigo-500/50' : 'bg-white hover:bg-gray-100 text-indigo-600 dark:bg-white/10 dark:text-indigo-300 dark:hover:bg-white/20'} `}
+                            className={`p-4 rounded-full transition-all ${isPlaying ? 'bg-primary text-primary-foreground scale-110 shadow-lg shadow-primary/50' : 'bg-muted hover:bg-muted/80 text-primary'} `}
                         >
                             <Volume2 className={`w-8 h-8 ${isPlaying ? 'animate-pulse' : ''} `} />
                         </button>

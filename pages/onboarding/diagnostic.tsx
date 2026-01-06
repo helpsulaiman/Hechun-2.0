@@ -18,11 +18,11 @@ const QUESTION_POOL = [
     // Intermediate (4-6)
     { id: 201, complexity: 4, text: 'Which word means "Tomorrow"?', options: ['Āz', 'Pagah', 'Rāth', 'Öutre'], correct: 1, skill: 'vocabulary' },
     { id: 202, complexity: 5, text: 'Complete: "Tsye kya ______?" (What is your name?)', options: ['chuy naav', 'chuy karun', 'gasun', 'khyon'], correct: 0, skill: 'grammar' },
-    { id: 203, complexity: 5, text: 'Identify the plural of "Garr" (Home):', options: ['Gar', 'Gar-e', 'Garr-as', 'Gar-an'], correct: 0, skill: 'grammar' }, // Context dependent, but let's assume simplified
+    { id: 203, complexity: 5, text: 'Identify the plural of "Garr" (Home):', options: ['Gar', 'Gar-e', 'Garr-as', 'Gar-an'], correct: 3, skill: 'grammar' }, // Context dependent, but let's assume simplified
     { id: 204, complexity: 6, text: 'Translate: "Bi chus school gasān"', options: ['I am going to school', 'I went to school', 'I will go to school', 'School is far'], correct: 0, skill: 'grammar' },
 
     // Advanced/Fluent (7-10)
-    { id: 301, complexity: 7, text: 'Idiom: "Aab-e zoon" refers to:', options: ['Moon reflected in water (impossible)', 'Very beautiful/Pure', 'A cold winter night', 'Heavy rain'], correct: 1, skill: 'vocabulary' }, // Poetic
+    { id: 301, complexity: 7, text: 'Idiom: "اَکھ تٕہ اَکھ گَیِہ کاہ (Akh ti akh gei kah)" refers to:', options: ['Not to pay heed', 'To get unexpected results', 'Strength in unity', 'Heavy rain'], correct: 2, skill: 'vocabulary' }, // Poetic
     { id: 302, complexity: 8, text: 'Correct nuance: "Wala" vs "Yuv"', options: ['Wala is rude', 'Yuv is come (imperative), Wala is bring', 'Both mean go', 'No difference'], correct: 1, skill: 'speaking' }, // Rough approximation
     { id: 303, complexity: 9, text: 'Complete proverb: "Naayi _____, aab as______"', options: ['pet, manz', 'tar, pak', 'daryav, wath', 'None of these'], correct: 0, skill: 'reading' }, // Mock proverb
     { id: 304, complexity: 9, text: 'Complex Tense: "Su oos pak-aan" means:', options: ['He walks', 'He was walking', 'He has walked', 'He will walk'], correct: 1, skill: 'grammar' },
@@ -125,14 +125,14 @@ export default function DiagnosticTest() {
                                 initial={{ opacity: 0, x: 50 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -50 }}
-                                className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-8 backdrop-blur-md shadow-sm dark:shadow-none"
+                                className="bg-card border border-border rounded-3xl p-8 backdrop-blur-md shadow-sm"
                             >
                                 <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-6">
                                     <span>Question {qIndex + 1}/{questions.length}</span>
                                     <span>Complexity: {currentQ.complexity}</span>
                                 </div>
 
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">{currentQ.text}</h2>
+                                <h2 className="text-2xl font-sans leading-relaxed text-card-foreground mb-8">{currentQ.text}</h2>
 
                                 <div className="grid gap-4">
                                     {currentQ.options.map((opt, idx) => (
@@ -145,8 +145,8 @@ export default function DiagnosticTest() {
                                                 ${isAnswered && idx === currentQ.correct
                                                     ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-500/20 dark:text-green-400 border'
                                                     : isAnswered && idx === selected
-                                                        ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-500/20 dark:text-red-400 border'
-                                                        : 'bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-900 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-gray-100'}
+                                                        ? 'bg-red-100 border-destructive text-destructive font-bold'
+                                                        : 'bg-muted hover:bg-muted/80 border border-border text-card-foreground'}
                                             `}
                                         >
                                             {opt}
@@ -160,13 +160,13 @@ export default function DiagnosticTest() {
                             <motion.div
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                className="text-center bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-12 shadow-sm dark:shadow-none"
+                                className="text-center bg-card border border-border rounded-3xl p-12 shadow-sm"
                             >
                                 <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <Check className="w-10 h-10 text-white" />
                                 </div>
-                                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Assessment Complete!</h2>
-                                <p className="text-gray-600 dark:text-gray-400 mb-8">
+                                <h2 className="text-3xl font-bold text-card-foreground mb-4">Assessment Complete!</h2>
+                                <p className="text-muted-foreground mb-8">
                                     You got {score} out of {questions.length} correct.
                                     <br />
                                     We've calibrated your learning path.

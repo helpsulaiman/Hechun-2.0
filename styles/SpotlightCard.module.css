@@ -9,12 +9,12 @@
     display: flex;
     flex-direction: column;
 
-    /* Light Mode Defaults */
+    /* Standard Theme Colors */
     background-color: var(--card);
     border: 1px solid var(--border);
-    --spotlight-color: rgba(14, 165, 233, 0.2);
-    /* Light blue */
-    color: var(--foreground);
+    --spotlight-color: var(--primary);
+
+    color: var(--card-foreground);
 }
 
 /* Dark Mode Overrides removed - handled by CSS variables */
@@ -34,5 +34,5 @@
 
 .cardSpotlight:hover::before,
 .cardSpotlight:focus-within::before {
-    opacity: 0.6;
+    opacity: 0.15;
 }

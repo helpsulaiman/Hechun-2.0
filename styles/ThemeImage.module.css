@@ -25,3 +25,11 @@
 :global(.dark) .darkImage {
     display: block !important;
 }
+
+:global(.light) .lightImage {
+    display: block !important;
+}
+
+:global(.light) .darkImage {
+    display: none !important;
+}

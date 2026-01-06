@@ -78,7 +78,7 @@ export default function LessonPlayer() {
 
     return (
         <Layout title={lesson.title || 'Lesson'}>
-            <div className="container mx-auto px-4 py-8 max-w-4xl">
+            <div className="container mx-auto px-4 py-8 max-w-7xl">
                 {/* Header */}
                 <div className="mb-8">
                     <button
@@ -103,13 +103,13 @@ export default function LessonPlayer() {
                 )}
 
                 {/* Content Area */}
-                <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-8 min-h-[400px] relative overflow-hidden flex flex-col justify-center shadow-sm dark:shadow-none">
+                <div className="bg-card border border-border rounded-3xl p-8 min-h-[400px] relative overflow-hidden flex flex-col justify-center shadow-sm">
 
                     {/* View Options */}
                     <div className="absolute top-4 right-4 z-10">
                         <button
                             onClick={() => setShowTransliteration(!showTransliteration)}
-                            className="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-black/20 dark:hover:bg-black/40 rounded-full text-gray-500 dark:text-indigo-200 transition-colors"
+                            className="p-2 bg-muted hover:bg-muted/80 rounded-full text-muted-foreground hover:text-foreground transition-colors"
                             title={showTransliteration ? "Hide Transliteration" : "Show Transliteration"}
                         >
                             {showTransliteration ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -240,18 +240,46 @@ export default function LessonPlayer() {
                                             localStorage.setItem(progressKey, JSON.stringify(progressCounts));
                                             localStorage.setItem(legacyKey, JSON.stringify(Object.keys(progressCounts).map(Number)));
 
-                                            // Update Skills
+                                            // Update Skills (Reduced Gain)
                                             const skillsKey = 'hechun_guest_skills';
                                             const localSkills = localStorage.getItem(skillsKey);
                                             // Default start at 0 if new
                                             const currentVector = localSkills ? JSON.parse(localSkills) : { reading: 0, writing: 0, speaking: 0, grammar: 0 };
 
-                                            // Increment by 10 points
-                                            currentVector.reading = (currentVector.reading || 0) + 10;
-                                            currentVector.speaking = (currentVector.speaking || 0) + 10;
-                                            currentVector.writing = (currentVector.writing || 0) + 5;
+                                            // Increment by 1-2 points
+                                            currentVector.reading = (currentVector.reading || 0) + 2;
+                                            currentVector.speaking = (currentVector.speaking || 0) + 2;
+                                            currentVector.writing = (currentVector.writing || 0) + 1;
 
                                             localStorage.setItem(skillsKey, JSON.stringify(currentVector));
+
+                                            // Update Guest Streak
+                                            const streakKey = 'hechun_guest_streak';
+                                            const streakDataStr = localStorage.getItem(streakKey);
+                                            const today = new Date().toISOString().split('T')[0];
+                                            let currentStreak = 1;
+
+                                            if (streakDataStr) {
+                                                try {
+                                                    const data = JSON.parse(streakDataStr);
+                                                    const lastVisit = data.lastVisit;
+
+                                                    if (lastVisit === today) {
+                                                        currentStreak = data.currentStreak;
+                                                    } else {
+                                                        const yesterday = new Date();
+                                                        yesterday.setDate(yesterday.getDate() - 1);
+                                                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+                                                        if (lastVisit === yesterdayStr) {
+                                                            currentStreak = (data.currentStreak || 0) + 1;
+                                                        } else {
+                                                            currentStreak = 1; // Broken streak
+                                                        }
+                                                    }
+                                                } catch (e) { console.error('Error parsing streak', e); }
+                                            }
+                                            localStorage.setItem(streakKey, JSON.stringify({ currentStreak, lastVisit: today }));
 
                                             // Redirect to dashboard where nudge will appear if needed
                                             router.push('/');
@@ -310,16 +338,45 @@ export default function LessonPlayer() {
                                         localStorage.setItem(progressKey, JSON.stringify(progressCounts));
                                         localStorage.setItem(legacyKey, JSON.stringify(Object.keys(progressCounts).map(Number)));
 
-                                        // Update Skills
+                                        // Update Skills (Reduced Gain)
                                         const skillsKey = 'hechun_guest_skills';
                                         const localSkills = localStorage.getItem(skillsKey);
                                         const currentVector = localSkills ? JSON.parse(localSkills) : { reading: 0, writing: 0, speaking: 0, grammar: 0 };
 
-                                        currentVector.reading = (currentVector.reading || 0) + 10;
-                                        currentVector.speaking = (currentVector.speaking || 0) + 10;
-                                        currentVector.writing = (currentVector.writing || 0) + 5;
+                                        currentVector.reading = (currentVector.reading || 0) + 2;
+                                        currentVector.speaking = (currentVector.speaking || 0) + 2;
+                                        currentVector.writing = (currentVector.writing || 0) + 1;
 
                                         localStorage.setItem(skillsKey, JSON.stringify(currentVector));
+
+                                        // Update Guest Streak
+                                        const streakKey = 'hechun_guest_streak';
+                                        const streakDataStr = localStorage.getItem(streakKey);
+                                        const today = new Date().toISOString().split('T')[0];
+                                        let currentStreak = 1;
+
+                                        if (streakDataStr) {
+                                            try {
+                                                const data = JSON.parse(streakDataStr);
+                                                const lastVisit = data.lastVisit;
+
+                                                if (lastVisit === today) {
+                                                    currentStreak = data.currentStreak;
+                                                } else {
+                                                    const yesterday = new Date();
+                                                    yesterday.setDate(yesterday.getDate() - 1);
+                                                    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+                                                    if (lastVisit === yesterdayStr) {
+                                                        currentStreak = (data.currentStreak || 0) + 1;
+                                                    } else {
+                                                        currentStreak = 1; // Broken streak
+                                                    }
+                                                }
+                                            } catch (e) { console.error('Error parsing streak', e); }
+                                        }
+
+                                        localStorage.setItem(streakKey, JSON.stringify({ currentStreak, lastVisit: today }));
 
                                         // Check Nudge (redundant here really if we unify behavior to just redirect)
                                         // But for fallback button:

@@ -7,6 +7,7 @@ import BubbleMenu from './BubbleMenu';
 import Footer from './Footer';
 import FeedbackButton from './ui/FeedbackButton';
 import StreakBadge from './ui/StreakBadge';
+import ThemeToggle from './ThemeToggle';
 
 import Link from 'next/link';
 
@@ -29,12 +30,27 @@ const Layout: React.FC<LayoutProps> = ({
     const [isAdmin, setIsAdmin] = useState(false);
     const [streak, setStreak] = useState(0);
 
-    // Check admin status and fetch streak when user changes
+    // Check admin status and fetch streak when user changes available
     useEffect(() => {
         const fetchUserStats = async () => {
             if (!user) {
+                // Guest Check
+                const hasGuestProgress = typeof window !== 'undefined' && (
+                    localStorage.getItem('hechun_guest_skills') ||
+                    localStorage.getItem('hechun_guest_progress_counts')
+                );
+
+                // Allow guests to see "Profile" and 0 streak (feature request: implement guest dates)
+                let guestStreak = 0;
+                try {
+                    const streakData = localStorage.getItem('hechun_guest_streak');
+                    if (streakData) {
+                        guestStreak = JSON.parse(streakData).currentStreak || 0;
+                    }
+                } catch (e) { }
+
                 setIsAdmin(false);
-                setStreak(0);
+                setStreak(guestStreak);
                 return;
             }
 
@@ -52,6 +68,8 @@ const Layout: React.FC<LayoutProps> = ({
     }, [user, supabase]);
 
     const navItems = React.useMemo(() => {
+        const isGuest = typeof window !== 'undefined' && !!localStorage.getItem('hechun_guest_skills');
+
         const items = [
             {
                 label: 'Home',
@@ -89,20 +107,22 @@ const Layout: React.FC<LayoutProps> = ({
             });
         }
 
-        // Add Profile or Login
-        items.push(
-            user ? {
+        // Add Profile or Login use logic
+        if (user || isGuest) {
+            items.push({
                 label: 'Profile',
                 href: '/profile',
                 rotation: isAdmin ? -8 : 8,
                 hoverStyles: { bgColor: '#ec4899', textColor: '#ffffff' } // Pink 
-            } : {
+            });
+        } else {
+            items.push({
                 label: 'Login',
                 href: '/auth/login',
                 rotation: 8,
                 hoverStyles: { bgColor: '#ef4444', textColor: '#ffffff' } // Red
-            }
-        );
+            });
+        }
 
         return items;
     }, [user, isAdmin]);
@@ -125,18 +145,18 @@ const Layout: React.FC<LayoutProps> = ({
                     <div className="pointer-events-auto">
                         <BubbleMenu
                             logo={
-                                <Link href="/" className="h-full flex items-center hover:opacity-80 transition-opacity duration-200">
+                                <Link href="/" className="h-full flex items-center hover:opacity-80 transition-opacity duration-200 pointer-events-auto">
                                     {/* Light Mode Logo */}
                                     <img
                                         src="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_L.png"
                                         alt="Hechun Logo"
-                                        className="h-full w-auto object-contain dark:hidden block"
+                                        className="h-16 md:h-32 w-auto object-contain translate-y-5 md:translate-y-7 dark:hidden block"
                                     />
                                     {/* Dark Mode Logo */}
                                     <img
                                         src="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_D.png"
                                         alt="Hechun Logo"
-                                        className="h-full w-auto object-contain hidden dark:block"
+                                        className="h-16 md:h-32 w-auto object-contain translate-y-5 md:translate-y-7 hidden dark:block"
                                     />
                                 </Link>
                             }
@@ -150,7 +170,8 @@ const Layout: React.FC<LayoutProps> = ({
                             staggerDelay={0.12}
                         >
                             {/* Streak Badge embedded in Navbar */}
-                            <div className="mr-4 flex items-center">
+                            <div className="mr-1 md:mr-4 flex items-center gap-1 md:gap-2">
+                                <ThemeToggle />
                                 <Link href="/leaderboard">
                                     <div className="cursor-pointer hover:scale-105 transition-transform">
                                         <StreakBadge streak={streak} />
