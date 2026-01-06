@@ -71,6 +71,18 @@ const ManageLessonsPage: React.FC = () => {
         router.push(`/dashboard/lessons/edit/${id}`);
     };
 
+    const handleCreateLesson = async () => {
+        try {
+            const res = await fetch('/api/lessons', { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to create lesson');
+            const data = await res.json();
+            router.push(`/dashboard/lessons/edit/${data.id}`);
+        } catch (e) {
+            console.error(e);
+            alert('Failed to create new lesson');
+        }
+    };
+
     return (
         <DashboardLayout>
             <Head>
@@ -87,7 +99,10 @@ const ManageLessonsPage: React.FC = () => {
                         </h1>
                         <p className="text-gray-400 mt-1">Organize and edit learning content by complexity.</p>
                     </div>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-medium shadow-lg shadow-indigo-500/20">
+                    <button
+                        onClick={handleCreateLesson}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-medium shadow-lg shadow-indigo-500/20"
+                    >
                         <Plus className="w-4 h-4" />
                         New Lesson
                     </button>

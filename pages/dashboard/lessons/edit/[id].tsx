@@ -7,6 +7,58 @@ import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { Save, ArrowLeft, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
+const LESSON_TEMPLATES = {
+    dialogue: {
+        type: 'structured',
+        kind: 'lesson',
+        steps: [
+            {
+                type: 'dialogue',
+                content: {
+                    speakers: [
+                        { id: 'A', name: 'Asif', avatar: '/avatars/asif.png', position: 'left' },
+                        { id: 'B', name: 'Saima', avatar: '/avatars/saima.png', position: 'right' }
+                    ],
+                    lines: [
+                        { speakerId: 'A', text: 'Kashmiri text here', translation: 'English translation', audio: '/audio/1.mp3' },
+                        { speakerId: 'B', text: 'Response here', translation: 'English response', audio: '/audio/2.mp3' }
+                    ]
+                }
+            }
+        ]
+    },
+    vocabulary: {
+        type: 'structured',
+        kind: 'lesson',
+        steps: [
+            {
+                type: 'vocabulary',
+                content: {
+                    items: [
+                        { term: 'Word', translation: 'Translation', pronunciation: 'Pronunciation', audio: '/audio/word.mp3' },
+                        { term: 'Another', translation: 'Translation', pronunciation: 'Pronunciation', audio: '/audio/word2.mp3' }
+                    ]
+                }
+            }
+        ]
+    },
+    quiz: {
+        type: 'structured',
+        kind: 'quiz',
+        steps: [
+            {
+                type: 'quiz',
+                content: {
+                    question: 'What does "Salam" mean?',
+                    options: ['Hello', 'Goodbye', 'Thank you'],
+                    correctAnswer: 'Hello',
+                    explanation: 'Salam is the standard greeting.'
+                }
+            }
+        ]
+    }
+};
+
 const EditLessonPage: React.FC = () => {
     const router = useRouter();
     const { id } = router.query;
@@ -43,7 +95,7 @@ const EditLessonPage: React.FC = () => {
                 description: data.description || '',
                 complexity: data.complexity,
                 lesson_order: data.lesson_order,
-                content: JSON.stringify(data.content, null, 2)
+                content: typeof data.content === 'string' ? data.content : JSON.stringify(data.content, null, 2)
             });
         } catch (error) {
             console.error('Error fetching lesson:', error);
@@ -90,6 +142,35 @@ const EditLessonPage: React.FC = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleTypeChange = (newKind: string) => {
+        try {
+            const parsed = JSON.parse(formData.content || '{}');
+            parsed.kind = newKind;
+            // Also ensure type is structured if it's new
+            if (!parsed.type) parsed.type = 'structured';
+            if (!parsed.steps) parsed.steps = [];
+
+            setFormData({ ...formData, content: JSON.stringify(parsed, null, 2) });
+        } catch (e) {
+            alert("Cannot update type: Invalid JSON content.");
+        }
+    };
+
+    const applyTemplate = (type: 'dialogue' | 'vocabulary' | 'quiz') => {
+        if (formData.content && formData.content.length > 50) {
+            if (!confirm('This will overwrite current content. Continue?')) return;
+        }
+        setFormData({ ...formData, content: JSON.stringify(LESSON_TEMPLATES[type], null, 2) });
+    };
+
+    // Helper to get current kind safely
+    const getCurrentKind = () => {
+        try {
+            const content = JSON.parse(formData.content);
+            return content.kind || 'lesson';
+        } catch (e) { return 'lesson'; }
     };
 
     if (loading) return <div className="p-10 text-center text-white">Loading...</div>;
@@ -161,10 +242,35 @@ const EditLessonPage: React.FC = () => {
 
                     {/* JSON Content Editor */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 flex justify-between">
-                            <span>Content (JSON)</span>
-                            <span className="text-xs text-gray-500">Be careful editing this directly.</span>
-                        </label>
+                        <div className="flex justify-between items-end mb-2">
+                            <div className="flex items-center gap-4">
+                                <label className="text-sm font-medium text-gray-300">
+                                    Content (JSON)
+                                </label>
+                                {/* Type Selector */}
+                                <select
+                                    value={getCurrentKind()}
+                                    onChange={(e) => handleTypeChange(e.target.value)}
+                                    className="bg-gray-800 border border-gray-700 text-white text-xs rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500"
+                                >
+                                    <option value="lesson">Teaching Lesson</option>
+                                    <option value="quiz">Quiz / Test</option>
+                                </select>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <span className="text-xs text-gray-500 self-center mr-2">Load Template:</span>
+                                <button type="button" onClick={() => applyTemplate('dialogue')} className="text-xs bg-gray-800 hover:bg-gray-700 text-indigo-400 border border-gray-700 px-3 py-1.5 rounded transition-colors">
+                                    Dialogue
+                                </button>
+                                <button type="button" onClick={() => applyTemplate('vocabulary')} className="text-xs bg-gray-800 hover:bg-gray-700 text-emerald-400 border border-gray-700 px-3 py-1.5 rounded transition-colors">
+                                    Vocabulary
+                                </button>
+                                <button type="button" onClick={() => applyTemplate('quiz')} className="text-xs bg-gray-800 hover:bg-gray-700 text-amber-400 border border-gray-700 px-3 py-1.5 rounded transition-colors">
+                                    Quiz
+                                </button>
+                            </div>
+                        </div>
                         <textarea
                             className="w-full bg-gray-900 border border-gray-700 rounded-lg p-4 text-green-400 font-mono text-sm focus:ring-2 focus:ring-indigo-500 outline-none h-[500px]"
                             value={formData.content}
