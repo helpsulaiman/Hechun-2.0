@@ -56,17 +56,29 @@ const FeedbackButton: React.FC = () => {
                     >
                         <div className="flex flex-col py-1">
                             {menuItems.map((item, index) => (
-                                <a
-                                    key={index}
-                                    href={item.href}
-                                    target={item.href.startsWith('mailto:') ? undefined : "_blank"}
-                                    rel={item.href.startsWith('mailto:') ? undefined : "noopener noreferrer"}
-                                    className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${item.color} hover:bg-opacity-50 dark:text-slate-200`}
-                                    onClick={() => setIsOpen(false)}
-                                >
-                                    <i className={`${item.icon} w-5 text-center`}></i>
-                                    {item.label}
-                                </a>
+                                item.href.startsWith('mailto:') ? (
+                                    <a
+                                        key={index}
+                                        href={item.href}
+                                        className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${item.color} hover:bg-opacity-50 dark:text-slate-200`}
+                                        onClick={() => setIsOpen(false)}
+                                    >
+                                        <i className={`${item.icon} w-5 text-center`}></i>
+                                        {item.label}
+                                    </a>
+                                ) : (
+                                    <a
+                                        key={index}
+                                        href={item.href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${item.color} hover:bg-opacity-50 dark:text-slate-200`}
+                                        onClick={() => setIsOpen(false)}
+                                    >
+                                        <i className={`${item.icon} w-5 text-center`}></i>
+                                        {item.label}
+                                    </a>
+                                )
                             ))}
                         </div>
                     </motion.div>

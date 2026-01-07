@@ -68,7 +68,7 @@ export default function HomePage() {
 
 function WelcomeView() {
   return (
-    <Layout title="Welcome to Hechun" fullWidth>
+    <Layout title="Hečhun" fullWidth>
       <div className="min-h-[85vh] flex flex-col items-center justify-center relative overflow-hidden bg-background">
         {/* Background Elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
@@ -199,7 +199,7 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
   };
 
   return (
-    <Layout title="Your Path">
+    <Layout title="Hečhun">
       <div className="container mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-2 text-foreground">

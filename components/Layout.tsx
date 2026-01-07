@@ -20,7 +20,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({
     children,
-    title = 'Kashmiri Idioms - Preserving Cultural Heritage',
+    title = 'Hečhun',
     description = 'Discover traditional Kashmiri idioms and their meanings. Explore our collection of cultural expressions that carry the wisdom of Kashmir.',
     fullWidth = false
 }) => {
