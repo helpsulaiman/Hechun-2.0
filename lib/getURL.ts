@@ -12,8 +12,8 @@ export const getURL = () => {
 
     // If running on client side, prefer window.location.origin if available and valid
     if (typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('http')) {
-        return window.location.origin.endsWith('/') ? window.location.origin : `${window.location.origin}/`;
+        url = window.location.origin.endsWith('/') ? window.location.origin : `${window.location.origin}/`;
     }
 
-    return url;
+    return `${url}api/auth/callback`;
 };

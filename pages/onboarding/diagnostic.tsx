@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
 import Layout from '../../components/Layout';
 import { Check, X } from 'lucide-react';
 
@@ -17,46 +18,64 @@ interface Question {
 }
 
 // Mock Pool - In production this should be larger (20 per category * 10 complexity levels ideally)
+// --- SPEAKING (Expanded) ---
+// --- SPEAKING (Expanded & Randomized) ---
 const QUESTION_POOL: Question[] = [
-    // --- SPEAKING ---
-    { id: 101, complexity: 1, category: 'speaking', skill: 'speaking', text: 'How do you say "Hello"?', options: ['Salam', 'Kyah', 'Na', 'Awa'], correct: 0 },
-    { id: 102, complexity: 5, category: 'speaking', skill: 'speaking', text: 'Response to "Tuhey kyah chiv karan?"', options: ['Bi chus gatshan', 'Bi chus parān', 'Salam', 'Awa'], correct: 1 },
-    { id: 103, complexity: 8, category: 'speaking', skill: 'speaking', text: 'Nuance: "Hata!" is used for?', options: ['Respectful address', 'Calling a male friend (informal)', 'Calling a female', 'Scolding'], correct: 1 },
-    { id: 104, complexity: 3, category: 'speaking', skill: 'speaking', text: '"Tohi chiv varaay?" means:', options: ['Are you well?', 'Who are you?', 'Where is it?', 'Come here'], correct: 0 },
-    { id: 105, complexity: 6, category: 'speaking', skill: 'speaking', text: 'Formal way to say "Sit down":', options: ['Beh', 'Behiv', 'Tul', 'Gats'], correct: 1 },
-    { id: 106, complexity: 2, category: 'speaking', skill: 'speaking', text: 'Saying "Thank you":', options: ['Shukriya', 'Salam', 'Adab', 'Bas'], correct: 0 },
+    { id: 101, complexity: 1, category: 'speaking', skill: 'speaking', text: 'How do you say "Hello"?', options: ['Kyah', 'Salam', 'Na', 'Awa'], correct: 1 },
+    { id: 102, complexity: 5, category: 'speaking', skill: 'speaking', text: 'Response to "Tuhey kyah chiv karan?"', options: ['Bi chus gatshan', 'Awa', 'Salam', 'Bi chus parān'], correct: 3 },
+    { id: 103, complexity: 8, category: 'speaking', skill: 'speaking', text: 'Nuance: "Hata!" is used for?', options: ['Respectful address', 'Calling a female', 'Scolding', 'Calling a male friend (informal)'], correct: 3 },
+    { id: 104, complexity: 3, category: 'speaking', skill: 'speaking', text: '"Tohi chiv varaay?" means:', options: ['Who are you?', 'Where is it?', 'Are you well?', 'Come here'], correct: 2 },
+    { id: 105, complexity: 6, category: 'speaking', skill: 'speaking', text: 'Formal way to say "Sit down":', options: ['Beh', 'Tul', 'Behiv', 'Gats'], correct: 2 },
+    { id: 106, complexity: 2, category: 'speaking', skill: 'speaking', text: 'Saying "Thank you":', options: ['Salam', 'Bas', 'Adab', 'Shukriya'], correct: 3 },
     { id: 107, complexity: 9, category: 'speaking', skill: 'speaking', text: 'Correct intonation for "Kyah?" (What?) vs "Kyah!" (Really!):', options: ['Rising vs Falling', 'Falling vs Rising', 'Flat vs High', 'No difference'], correct: 0 },
     { id: 108, complexity: 4, category: 'speaking', skill: 'speaking', text: '"Me lej tresh" expresses:', options: ['Thirst', 'Hunger', 'Pain', 'Joy'], correct: 0 },
-    { id: 109, complexity: 7, category: 'speaking', skill: 'speaking', text: 'Native idiom for "I understand":', options: ['Me aav gats', 'Me pyav fikri', 'Bi chus zanan', 'Me gov maloom'], correct: 1 },
-    { id: 110, complexity: 10, category: 'speaking', skill: 'speaking', text: 'Complex polite command: "Tohi heykiyav..."', options: ['You could...', 'You must...', 'Why did you...', 'Are you...'], correct: 0 },
+    { id: 109, complexity: 7, category: 'speaking', skill: 'speaking', text: 'Native idiom for "I understand":', options: ['Me aav gats', 'Bi chus zanan', 'Me gov maloom', 'Me pyav fikri'], correct: 3 },
+    { id: 110, complexity: 10, category: 'speaking', skill: 'speaking', text: 'Complex polite command: "Tohi heykiyav..."', options: ['Are you...', 'You must...', 'Why did you...', 'You could...'], correct: 3 },
+    { id: 111, complexity: 2, category: 'speaking', skill: 'speaking', text: 'How to greet an elder respectfully?', options: ['Adab', 'Hey', 'Kyah chuh', 'Sun'], correct: 0 },
+    { id: 112, complexity: 4, category: 'speaking', skill: 'speaking', text: '"Bi chus theek" means:', options: ['I am sick', 'I am going', 'I am fine', 'I am eating'], correct: 2 },
+    { id: 113, complexity: 6, category: 'speaking', skill: 'speaking', text: 'Asking "Where is the way?":', options: ['Garr kati chuh?', 'Su kus chuh?', 'Vath kati che?', 'Kyah gav?'], correct: 2 },
+    { id: 114, complexity: 8, category: 'speaking', skill: 'speaking', text: 'Which implies urgency?', options: ['Vara vara', 'Jaldi kar!', 'Ruksa', 'Pakaan'], correct: 1 },
+    { id: 115, complexity: 5, category: 'speaking', skill: 'speaking', text: 'Saying goodbye:', options: ['Salam', 'Awa', 'Khuda Haafiz', 'Na'], correct: 2 },
 
-    // --- READING / WRITING ---
-    { id: 201, complexity: 1, category: 'reading_writing', skill: 'reading', text: 'Letter "A" in Kashmiri script:', options: ['ا', 'ب', 'ج', 'د'], correct: 0 },
+    // --- READING / WRITING (Expanded & Randomized) ---
+    { id: 201, complexity: 1, category: 'reading_writing', skill: 'reading', text: 'Letter "A" in Kashmiri script:', options: ['ب', 'ا', 'ج', 'د'], correct: 1 },
     { id: 202, complexity: 2, category: 'reading_writing', skill: 'reading', text: 'Identify "Pan" (Leaf):', options: ['پَن', 'تَن', 'مَن', 'لَن'], correct: 0 },
-    { id: 203, complexity: 5, category: 'reading_writing', skill: 'reading', text: 'Read: "کٲشُر"', options: ['Kashruk', 'Koshur', 'Kashir', 'Kashmir'], correct: 1 },
-    { id: 204, complexity: 6, category: 'reading_writing', skill: 'writing', text: 'Correct spelling for "School":', options: ['سکول', 'اسکول', 'سوکول', 'سکال'], correct: 0 },
-    { id: 205, complexity: 3, category: 'reading_writing', skill: 'reading', text: 'Which letter is "Tse"?', options: ['ژ', 'چ', 'ج', 'خ'], correct: 0 },
-    { id: 206, complexity: 8, category: 'reading_writing', skill: 'reading', text: 'Vowel mark for "Ö" sound:', options: ['Zer', 'Zabar', 'pesh', 'None'], correct: 1 },
-    { id: 207, complexity: 4, category: 'reading_writing', skill: 'reading', text: 'Read "آب" :', options: ['Aab', 'Sab', 'Tab', 'Kab'], correct: 0 },
+    { id: 203, complexity: 5, category: 'reading_writing', skill: 'reading', text: 'Read: "کٲشُر"', options: ['Kashruk', 'Konder', 'Kashir', 'Koshur'], correct: 3 },
+    { id: 204, complexity: 6, category: 'reading_writing', skill: 'writing', text: 'Correct spelling for "School":', options: ['سکول', 'سوکول', 'سکال', 'اسکول'], correct: 0 },
+    { id: 205, complexity: 3, category: 'reading_writing', skill: 'reading', text: 'Which letter is "Tse"?', options: ['چ', 'ج', 'ژ', 'خ'], correct: 2 },
+    { id: 206, complexity: 8, category: 'reading_writing', skill: 'reading', text: 'Vowel mark for "Ö" sound:', options: ['Zer', 'Zabar', 'None', 'pesh'], correct: 2 }, // Tricky
+    { id: 207, complexity: 4, category: 'reading_writing', skill: 'reading', text: 'Read "آب" :', options: ['Sab', 'Aab', 'Tab', 'Kab'], correct: 1 },
     { id: 208, complexity: 7, category: 'reading_writing', skill: 'writing', text: 'Write "Garr" (Home):', options: ['گَر', 'گھر', 'گرٕ', 'گار'], correct: 2 },
     { id: 209, complexity: 9, category: 'reading_writing', skill: 'reading', text: 'Distinguish "R" (ر) vs "D" (ڑ):', options: ['Shape', 'Dot position', 'No difference', 'Sound only'], correct: 1 },
     { id: 210, complexity: 10, category: 'reading_writing', skill: 'reading', text: 'Classic script style used in Kashmir:', options: ['Nastaliq', 'Naskh', 'Kufic', 'Thuluth'], correct: 0 },
+    { id: 211, complexity: 2, category: 'reading_writing', skill: 'reading', text: 'Identify "Naar" (Fire):', options: ['نور', 'نیر', 'تار', 'نار'], correct: 3 },
+    { id: 212, complexity: 4, category: 'reading_writing', skill: 'reading', text: 'Letter for "Ch" sound:', options: ['ج', 'ح', 'چ', 'خ'], correct: 2 },
+    { id: 213, complexity: 6, category: 'reading_writing', skill: 'writing', text: 'Write "Posh" (Flower):', options: ['پاش', 'پوش', 'فوش', 'بوش'], correct: 1 },
+    { id: 214, complexity: 5, category: 'reading_writing', skill: 'reading', text: 'Read "Dood" (Milk):', options: ['دُد', 'داد', 'ڈوڈ', 'دید'], correct: 0 },
+    { id: 215, complexity: 3, category: 'reading_writing', skill: 'reading', text: 'Identify numeral 5:', options: ['۶', '۴', '۵', '۷'], correct: 2 },
 
-    // --- GRAMMAR / VOCABULARY ---
-    { id: 301, complexity: 1, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Word for "Cat":', options: ['Broor', 'Hoon', 'Gurr', 'Khar'], correct: 0 },
-    { id: 302, complexity: 2, category: 'grammar_vocabulary', skill: 'grammar', text: 'Plural of "Hoon" (Dog):', options: ['Hoon', 'Hooni', 'Hoons', 'Hoonan'], correct: 1 },
+    // --- GRAMMAR / VOCABULARY (Expanded & Randomized) ---
+    { id: 301, complexity: 1, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Word for "Cat":', options: ['Hoon', 'Gurr', 'Broor', 'Khar'], correct: 2 },
+    { id: 302, complexity: 2, category: 'grammar_vocabulary', skill: 'grammar', text: 'Plural of "Hoon" (Dog):', options: ['Hoon', 'Hoons', 'Hoonan', 'Hooni'], correct: 3 },
     { id: 303, complexity: 5, category: 'grammar_vocabulary', skill: 'grammar', text: 'Past tense marker (masculine singular):', options: ['-ov', '-yi', '-as', '-an'], correct: 0 },
-    { id: 304, complexity: 6, category: 'grammar_vocabulary', skill: 'grammar', text: '"Su chuh" means:', options: ['He is', 'She is', 'It is', 'They are'], correct: 0 },
-    { id: 305, complexity: 3, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Opposite of "Nyeber" (Outside):', options: ['Andar', 'Peth', 'Bon', 'Pat'], correct: 0 },
-    { id: 306, complexity: 7, category: 'grammar_vocabulary', skill: 'grammar', text: 'Ergative Case marker (Agentive):', options: ['-an', '-us', '-as', '-uk'], correct: 0 },
-    { id: 307, complexity: 4, category: 'grammar_vocabulary', skill: 'grammar', text: '"Yath" uses which case?', options: ['Dative', 'Nominative', 'Genitive', 'Ablative'], correct: 0 },
-    { id: 308, complexity: 8, category: 'grammar_vocabulary', skill: 'grammar', text: 'Conjunction "Magar":', options: ['But', 'And', 'Or', 'So'], correct: 0 },
-    { id: 309, complexity: 9, category: 'grammar_vocabulary', skill: 'grammar', text: 'Complex Verb: "Par-an-aav-un" (To teach/cause to read):', options: ['Causative', 'Passive', 'Active', 'Reflexive'], correct: 0 },
-    { id: 310, complexity: 10, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Proverb meaning: "Dour Pohol"?', options: ['Distant shepherd (useless)', 'Strong leader', 'Rich man', 'Lost sheep'], correct: 0 },
+    { id: 304, complexity: 6, category: 'grammar_vocabulary', skill: 'grammar', text: '"Su chuh" means:', options: ['She is', 'He is', 'It is', 'They are'], correct: 1 },
+    { id: 305, complexity: 3, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Opposite of "Nyeber" (Outside):', options: ['Peth', 'Bon', 'Andar', 'Pat'], correct: 2 },
+    { id: 306, complexity: 7, category: 'grammar_vocabulary', skill: 'grammar', text: 'Ergative Case marker (Agentive):', options: ['-us', '-an', '-as', '-uk'], correct: 1 },
+    { id: 307, complexity: 4, category: 'grammar_vocabulary', skill: 'grammar', text: '"Yath" uses which case?', options: ['Nominative', 'Genitive', 'Ablative', 'Dative'], correct: 3 },
+    { id: 308, complexity: 8, category: 'grammar_vocabulary', skill: 'grammar', text: 'Conjunction "Magar":', options: ['And', 'But', 'Or', 'So'], correct: 1 },
+    { id: 309, complexity: 9, category: 'grammar_vocabulary', skill: 'grammar', text: 'Complex Verb: "Par-an-aav-un" (To teach/cause to read):', options: ['Passive', 'Active', 'Causative', 'Reflexive'], correct: 2 },
+    { id: 310, complexity: 10, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Proverb meaning: "Dour Pohol"?', options: ['Strong leader', 'Rich man', 'Lost sheep', 'Distant shepherd (useless)'], correct: 3 },
+    { id: 311, complexity: 2, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Word for "Mother":', options: ['Mauj', 'Beni', 'Koor', 'Zanana'], correct: 0 },
+    { id: 312, complexity: 4, category: 'grammar_vocabulary', skill: 'grammar', text: 'Future Tense: "I will go":', options: ['Bi gatsa', 'Bi goos', 'Bi chus gatshan', 'Bi gatsan'], correct: 0 },
+    { id: 313, complexity: 5, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Meaning of "Vakh":', options: ['Place', 'Person', 'Food', 'Time'], correct: 3 },
+    { id: 314, complexity: 3, category: 'grammar_vocabulary', skill: 'grammar', text: 'Possessive "My" (Masculine Object):', options: ['Me', 'Myo', 'Myon', 'Mya'], correct: 2 },
+    { id: 315, complexity: 6, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Word for "Snow":', options: ['Naar', 'Aab', 'Sheen', 'Vaav'], correct: 2 },
 ];
 
 export default function DiagnosticTest() {
     const router = useRouter();
+    const user = useUser();
+    const supabase = useSupabaseClient();
     const [questions, setQuestions] = useState<Question[]>([]);
     const [qIndex, setQIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -127,10 +146,16 @@ export default function DiagnosticTest() {
         if (optionIndex === currentQ.correct) {
             setScore(s => s + 1);
 
-            // Weighted Points
+            // Weighted Points based on Question Complexity Pool
+            // User Spec:
+            // Pool 1 (Fluent, 7-10): 4 pts
+            // Pool 2 (Intermediate, 4-6): 2 pts
+            // Pool 3 (Beginner, 1-4): 1 pt
+
             let points = 1;
             if (currentQ.complexity >= 7) points = 4;
-            else if (currentQ.complexity > 4) points = 2;
+            else if (currentQ.complexity >= 4) points = 2; // Covers 4-6
+            else points = 1; // Covers 1-3
 
             // Direct Skill Mapping from Question Metadata
             const earned = pointsRef.current;
@@ -138,8 +163,10 @@ export default function DiagnosticTest() {
 
             if (skill) {
                 earned[skill] = (earned[skill] || 0) + points;
+                console.log(`Earned ${points} points for ${skill} (Complexity ${currentQ.complexity}). Total: ${earned[skill]}`);
             } else {
-                // Fallback (should not happen with updated pool)
+                // Fallback
+                console.warn('Question missing skill property:', currentQ);
                 earned.vocabulary = (earned.vocabulary || 0) + points;
             }
         }
@@ -157,20 +184,44 @@ export default function DiagnosticTest() {
 
     const finishTest = async () => {
         setIsFinished(true);
+        const earned = pointsRef.current;
+        console.log('Points Earned in Test:', earned);
 
-        // Update Guest Skills (No XP)
-        if (typeof window !== 'undefined') {
-            const existingSkillsStr = localStorage.getItem('hechun_guest_skills');
-            let skills = existingSkillsStr
-                ? JSON.parse(existingSkillsStr)
-                : { reading: 0, speaking: 0, grammar: 0, writing: 0, vocabulary: 0, culture: 0 };
+        try {
+            if (user) {
+                // Authenticated User: Save to DB
+                console.log('Saving diagnostic results to DB for user:', user.id);
+                const res = await fetch('/api/user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'complete_diagnostic',
+                        points: earned
+                    }),
+                });
 
-            const earned = pointsRef.current;
-            Object.keys(earned).forEach(key => {
-                skills[key] = (skills[key] || 0) + earned[key];
-            });
+                if (!res.ok) throw new Error('Failed to save scores');
+                console.log('Successfully saved to DB');
+            } else {
+                // Guest User: Save to LocalStorage
+                if (typeof window !== 'undefined') {
+                    const existingSkillsStr = localStorage.getItem('hechun_guest_skills');
+                    let skills = existingSkillsStr
+                        ? JSON.parse(existingSkillsStr)
+                        : { reading: 0, speaking: 0, grammar: 0, writing: 0, vocabulary: 0, culture: 0 };
 
-            localStorage.setItem('hechun_guest_skills', JSON.stringify(skills));
+                    console.log('Initial Skills (Before Update):', skills);
+
+                    Object.keys(earned).forEach(key => {
+                        skills[key] = (skills[key] || 0) + earned[key];
+                    });
+
+                    console.log('Final Skills (Saving):', skills);
+                    localStorage.setItem('hechun_guest_skills', JSON.stringify(skills));
+                }
+            }
+        } catch (err) {
+            console.error('Error saving diagnostic results:', err);
         }
 
         setTimeout(() => {

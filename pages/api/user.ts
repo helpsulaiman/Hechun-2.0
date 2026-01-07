@@ -33,21 +33,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'POST') {
-        // Create/Update Profile
-        const { skills } = req.body as { skills: SkillProfile };
+        const { skills, action, points } = req.body; // points is the earned vector from diagnostic
 
-        // Convert skill levels to numeric scores
-        const skillMap = {
-            'none': 0,
-            'beginner': 25,
-            'intermediate': 50,
-            'fluent': 85
-        };
+        if (action === 'complete_diagnostic') {
+            if (!userId) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
 
+            try {
+                // Fetch existing profile to increment
+                const currentProfile = await prisma.userProfile.findUnique({
+                    where: { user_id: userId },
+                });
+
+                const currentVector: any = currentProfile?.skill_vector || {
+                    reading: 0,
+                    writing: 0,
+                    speaking: 0,
+                    grammar: 0,
+                    vocabulary: 0
+                };
+
+                // Add earned points
+                const newVector = {
+                    reading: (currentVector.reading || 0) + (points.reading || 0),
+                    writing: (currentVector.writing || 0) + (points.writing || 0),
+                    speaking: (currentVector.speaking || 0) + (points.speaking || 0),
+                    grammar: (currentVector.grammar || 0) + (points.grammar || 0),
+                    vocabulary: (currentVector.vocabulary || 0) + (points.vocabulary || 0),
+                };
+
+                const updatedProfile = await prisma.userProfile.upsert({
+                    where: { user_id: userId },
+                    update: { skill_vector: newVector },
+                    create: {
+                        user_id: userId,
+                        skill_vector: newVector,
+                    },
+                });
+
+                return res.status(200).json({ success: true, profile: updatedProfile });
+
+            } catch (error) {
+                console.error('Error updating diagnostic score:', error);
+                return res.status(500).json({ error: 'Failed to save diagnostic score' });
+            }
+        }
+
+        // Default: Create/Reset Profile (Start Page)
+        // Convert skill levels to numeric scores (Reset to 0 requested by user)
         const skillVector = {
-            reading: skillMap[skills.reading],
-            writing: skillMap[skills.writing],
-            speaking: skillMap[skills.speaking],
+            reading: 0,
+            writing: 0,
+            speaking: 0,
+            grammar: 0,
+            vocabulary: 0
         };
 
         try {
@@ -63,8 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 });
                 return res.status(200).json({ success: true, profile });
             } else {
-                // Guest User - We can't save to DB without a user ID.
-                // For guests, we return the vector so the frontend can store it in localStorage
+                // Guest User
                 return res.status(200).json({ success: true, isGuest: true, skillVector });
             }
         } catch (error) {

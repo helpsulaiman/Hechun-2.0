@@ -28,9 +28,16 @@ const ProfilePage: React.FC = () => {
     const [usernameMessage, setUsernameMessage] = useState('');
     const [isCheckingUsername, setIsCheckingUsername] = useState(false);
 
+    // Change Password State
+    const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [changePasswordMessage, setChangePasswordMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
     // Delete Account State
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteConfirmation, setDeleteConfirmation] = useState(''); // Password or "DELETE"
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState('');
 
@@ -41,6 +48,8 @@ const ProfilePage: React.FC = () => {
     // Progress State
     const [stats, setStats] = useState({ totalXP: 0, lessonsCompleted: 0 });
     const [skills, setSkills] = useState<any>({ reading: 0, grammar: 0, listening: 0, speaking: 0 });
+
+    const isOAuthUser = user?.app_metadata?.provider !== 'email';
 
     useEffect(() => {
         if (user) {
@@ -161,6 +170,44 @@ const ProfilePage: React.FC = () => {
         }
     };
 
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setChangePasswordMessage(null);
+        setIsChangingPassword(true);
+
+        if (newPassword !== confirmNewPassword) {
+            setChangePasswordMessage({ type: 'error', text: 'Passwords do not match.' });
+            setIsChangingPassword(false);
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            setChangePasswordMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
+            setIsChangingPassword(false);
+            return;
+        }
+
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+            if (error) throw error;
+            setChangePasswordMessage({ type: 'success', text: 'Password updated successfully!' });
+            setNewPassword('');
+            setConfirmNewPassword('');
+            // Optional: Close modal after delay
+            setTimeout(() => {
+                setIsChangePasswordModalOpen(false);
+                setChangePasswordMessage(null);
+            }, 1500);
+
+        } catch (error: any) {
+            setChangePasswordMessage({ type: 'error', text: error.message });
+        } finally {
+            setIsChangingPassword(false);
+        }
+    };
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
         router.push('/');
@@ -197,14 +244,20 @@ const ProfilePage: React.FC = () => {
         setDeleteError('');
 
         try {
-            // 1. Re-authenticate with password to verify ownership
-            const { error: authError } = await supabase.auth.signInWithPassword({
-                email: user.email,
-                password: deletePassword
-            });
+            if (isOAuthUser) {
+                if (deleteConfirmation.toUpperCase() !== 'DELETE') {
+                    throw new Error('Please type "DELETE" to confirm.');
+                }
+            } else {
+                // 1. Re-authenticate with password
+                const { error: authError } = await supabase.auth.signInWithPassword({
+                    email: user.email,
+                    password: deleteConfirmation
+                });
 
-            if (authError) {
-                throw new Error('Incorrect password. Please try again.');
+                if (authError) {
+                    throw new Error('Incorrect password. Please try again.');
+                }
             }
 
             // 2. Call API to delete account
@@ -320,13 +373,78 @@ const ProfilePage: React.FC = () => {
                                             )}
                                         </div>
 
-                                        <button
-                                            type="submit"
-                                            disabled={saving || isUsernameValid === false}
-                                            className="btn btn-primary"
-                                        >
-                                            {saving ? 'Saving...' : 'Save Changes'}
-                                        </button>
+                                        <div className="flex flex-wrap gap-3">
+                                            <button
+                                                type="submit"
+                                                disabled={saving || isUsernameValid === false}
+                                                className="btn btn-primary"
+                                            >
+                                                {saving ? 'Saving...' : 'Save Changes'}
+                                            </button>
+
+                                            {!isOAuthUser && (
+                                                <Dialog.Root open={isChangePasswordModalOpen} onOpenChange={setIsChangePasswordModalOpen}>
+                                                    <Dialog.Trigger asChild>
+                                                        <button type="button" className="btn btn-secondary">
+                                                            Change Password
+                                                        </button>
+                                                    </Dialog.Trigger>
+                                                    <Dialog.Portal>
+                                                        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 fade-in" />
+                                                        <Dialog.Content className="fixed top-1/2 left-1/2 max-w-md w-full -translate-x-1/2 -translate-y-1/2 bg-[var(--bg-card)] p-6 rounded-lg shadow-xl z-50 border border-[var(--border-color)] slide-up-content">
+                                                            <Dialog.Title className="text-xl font-bold mb-4 text-[var(--text-primary)]">Change Password</Dialog.Title>
+
+                                                            {changePasswordMessage && (
+                                                                <div className={`p-3 mb-4 rounded ${changePasswordMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                                    {changePasswordMessage.text}
+                                                                </div>
+                                                            )}
+
+                                                            <form onSubmit={handleChangePassword} className="space-y-4">
+                                                                <div>
+                                                                    <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">New Password</label>
+                                                                    <input
+                                                                        type="password"
+                                                                        className="form-input w-full"
+                                                                        value={newPassword}
+                                                                        onChange={e => setNewPassword(e.target.value)}
+                                                                        required
+                                                                        minLength={6}
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Confirm New Password</label>
+                                                                    <input
+                                                                        type="password"
+                                                                        className="form-input w-full"
+                                                                        value={confirmNewPassword}
+                                                                        onChange={e => setConfirmNewPassword(e.target.value)}
+                                                                        required
+                                                                        minLength={6}
+                                                                    />
+                                                                </div>
+                                                                <div className="flex justify-end gap-3 mt-6">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setIsChangePasswordModalOpen(false)}
+                                                                        className="btn btn-secondary"
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                    <button
+                                                                        type="submit"
+                                                                        disabled={isChangingPassword}
+                                                                        className="btn btn-primary"
+                                                                    >
+                                                                        {isChangingPassword ? 'Updating...' : 'Update Password'}
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        </Dialog.Content>
+                                                    </Dialog.Portal>
+                                                </Dialog.Root>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </form>
@@ -360,28 +478,33 @@ const ProfilePage: React.FC = () => {
                         <div>
                             <h3 className="text-lg font-bold mb-4 text-[var(--text-secondary)]">Skill Breakdown</h3>
                             <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl divide-y divide-[var(--border-color)]">
-                                {Object.entries(skills).map(([key, value]: [string, any]) => (
-                                    <div key={key} className="flex items-center justify-between p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-2 h-8 rounded-full ${key === 'reading' ? 'bg-indigo-500' :
-                                                key === 'writing' ? 'bg-purple-500' :
-                                                    key === 'speaking' ? 'bg-green-500' : 'bg-blue-500'
-                                                }`}></div>
-                                            <span className="capitalize font-medium text-[var(--text-primary)]">{key}</span>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-indigo-500"
-                                                    style={{ width: `${Math.min(100, Math.max(5, typeof value === 'number' ? value : 0))}%` }}
-                                                ></div>
+                                {['reading', 'writing', 'speaking', 'listening', 'grammar', 'vocabulary'].map((key) => {
+                                    const value = skills[key] || 0;
+                                    return (
+                                        <div key={key} className="flex items-center justify-between p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-2 h-8 rounded-full ${key === 'reading' ? 'bg-indigo-500' :
+                                                    key === 'writing' ? 'bg-purple-500' :
+                                                        key === 'speaking' ? 'bg-green-500' :
+                                                            key === 'listening' ? 'bg-blue-500' :
+                                                                key === 'grammar' ? 'bg-yellow-500' : 'bg-red-500'
+                                                    }`}></div>
+                                                <span className="capitalize font-medium text-[var(--text-primary)]">{key}</span>
                                             </div>
-                                            <span className="text-sm font-mono text-[var(--text-secondary)] w-8 text-right">
-                                                {typeof value === 'number' ? value : 0}
-                                            </span>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-indigo-500"
+                                                        style={{ width: `${Math.min(100, Math.max(5, typeof value === 'number' ? value : 0))}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-sm font-mono text-[var(--text-secondary)] w-8 text-right">
+                                                    {typeof value === 'number' ? value : 0}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </section>
@@ -466,7 +589,13 @@ const ProfilePage: React.FC = () => {
                                         <Dialog.Content className="fixed top-1/2 left-1/2 max-w-md w-full -translate-x-1/2 -translate-y-1/2 bg-[var(--bg-card)] p-6 rounded-lg shadow-xl z-50 border border-[var(--border-color)] slide-up-content">
                                             <Dialog.Title className="text-xl font-bold mb-4 text-[var(--text-primary)]">Confirm Account Deletion</Dialog.Title>
                                             <Dialog.Description className="text-[var(--text-secondary)] mb-6">
-                                                Please enter your password to confirm you want to permanently delete your account.
+                                                {isOAuthUser ? (
+                                                    <span>
+                                                        To confirm deletion, please type <strong className="text-red-500">DELETE</strong> below.
+                                                    </span>
+                                                ) : (
+                                                    <span>Please enter your password to confirm you want to permanently delete your account.</span>
+                                                )}
                                                 <br /><br />
                                                 <strong className="text-red-500">Warning: This cannot be undone.</strong>
                                             </Dialog.Description>
@@ -479,13 +608,15 @@ const ProfilePage: React.FC = () => {
                                                 )}
 
                                                 <div>
-                                                    <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Password</label>
+                                                    <label className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">
+                                                        {isOAuthUser ? 'Confirmation' : 'Password'}
+                                                    </label>
                                                     <input
-                                                        type="password"
+                                                        type={isOAuthUser ? 'text' : 'password'}
                                                         className="search-input w-full"
-                                                        placeholder="Enter your password"
-                                                        value={deletePassword}
-                                                        onChange={e => setDeletePassword(e.target.value)}
+                                                        placeholder={isOAuthUser ? 'Type DELETE' : 'Enter your password'}
+                                                        value={deleteConfirmation}
+                                                        onChange={e => setDeleteConfirmation(e.target.value)}
                                                         required
                                                     />
                                                 </div>

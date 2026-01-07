@@ -180,8 +180,17 @@ const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ init
                                     {topThree[1] && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                                            className="flex flex-col items-center"
+                                            className="flex flex-col items-center group relative cursor-help"
                                         >
+                                            {/* Hover Card */}
+                                            <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 hidden group-hover:block w-48 bg-gray-900/90 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl z-30 border border-white/10 text-center">
+                                                <div className="font-bold text-lg mb-1 break-words">{topThree[1].username}</div>
+                                                <div className="text-xs text-gray-300 font-mono">
+                                                    {topThree[1].total_xp} XP • {topThree[1].lessons_completed} Lessons
+                                                </div>
+                                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900/90"></div>
+                                            </div>
+
                                             <div className="mb-2 relative">
                                                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-gray-300 overflow-hidden shadow-xl bg-muted flex items-center justify-center">
                                                     {topThree[1].user_id === 'guest' ? (
@@ -203,8 +212,18 @@ const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ init
                                     {topThree[0] && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                                            className="flex flex-col items-center z-10"
+                                            className="flex flex-col items-center z-10 group relative cursor-help"
                                         >
+                                            {/* Hover Card */}
+                                            <div className="absolute bottom-full mb-6 left-1/2 -translate-x-1/2 hidden group-hover:block w-56 bg-gradient-to-br from-yellow-700/90 to-yellow-900/90 backdrop-blur-md text-white p-4 rounded-xl shadow-2xl z-30 border border-yellow-500/30 text-center">
+                                                <Crown className="w-6 h-6 mx-auto text-yellow-400 mb-2" fill="currentColor" />
+                                                <div className="font-bold text-xl mb-1 break-words">{topThree[0].username}</div>
+                                                <div className="text-xs text-yellow-100 font-mono">
+                                                    {topThree[0].total_xp} XP • {topThree[0].lessons_completed} Lessons
+                                                </div>
+                                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 border-8 border-transparent border-t-yellow-900/90"></div>
+                                            </div>
+
                                             <div className="mb-3 relative">
                                                 <Crown className="w-8 h-8 text-yellow-500 absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce" fill="#eab308" />
                                                 <div className="w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-yellow-400 overflow-hidden shadow-2xl ring-4 ring-yellow-400/20 bg-muted flex items-center justify-center">
@@ -228,8 +247,17 @@ const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ init
                                     {topThree[2] && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                                            className="flex flex-col items-center"
+                                            className="flex flex-col items-center group relative cursor-help"
                                         >
+                                            {/* Hover Card */}
+                                            <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 hidden group-hover:block w-48 bg-gray-900/90 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl z-30 border border-white/10 text-center">
+                                                <div className="font-bold text-lg mb-1 break-words">{topThree[2].username}</div>
+                                                <div className="text-xs text-gray-300 font-mono">
+                                                    {topThree[2].total_xp} XP • {topThree[2].lessons_completed} Lessons
+                                                </div>
+                                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900/90"></div>
+                                            </div>
+
                                             <div className="mb-2 relative">
                                                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-orange-300 overflow-hidden shadow-xl bg-muted flex items-center justify-center">
                                                     {topThree[2].user_id === 'guest' ? (
