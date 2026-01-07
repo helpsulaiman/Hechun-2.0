@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import { useUser } from '@supabase/auth-helpers-react';
@@ -90,9 +91,73 @@ function WelcomeView() {
             </div>
           </div>
 
-          <h1 className="text-4xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground">
-            Learn Kashmiri <span className="text-primary">YOUR</span> Way.
-          </h1>
+          <motion.h1
+            className="text-4xl md:text-7xl font-bold mb-6 flex flex-wrap justify-center gap-x-4 md:gap-x-6 leading-tight"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 1 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.08,
+                },
+              },
+            }}
+          >
+            {/* Word 1: Learn */}
+            <span className="flex whitespace-nowrap">
+              {"Learn".split("").map((char, i) => (
+                <motion.span
+                  key={`learn-${i}`}
+                  variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
+                  className="bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground"
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </span>
+
+            {/* Word 2: Kashmiri */}
+            <span className="flex whitespace-nowrap">
+              {"Kashmiri".split("").map((char, i) => (
+                <motion.span
+                  key={`kash-${i}`}
+                  variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
+                  className="bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground"
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </span>
+
+            {/* Word 3: YOUR (Glowing) */}
+            <span className="flex whitespace-nowrap">
+              {"YOUR".split("").map((char, i) => (
+                <motion.span
+                  key={`your-${i}`}
+                  variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
+                  className="text-primary drop-shadow-[0_0_15px_rgba(var(--primary-rgb),0.8)]"
+                  style={{ textShadow: "0 0 20px currentColor" }}
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </span>
+
+            {/* Word 4: Way. */}
+            <span className="flex whitespace-nowrap">
+              {"Way.".split("").map((char, i) => (
+                <motion.span
+                  key={`way-${i}`}
+                  variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
+                  className="bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground"
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </span>
+          </motion.h1>
 
           <p className="text-xl text-muted-foreground mb-10 leading-relaxed max-w-2xl mx-auto">
             Hečhun creates a personalized learning path just for you.
