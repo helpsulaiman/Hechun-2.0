@@ -1,46 +1,50 @@
-# Kashmiri Idioms: Preserving Cultural Heritage
+# Hečhun
 
-## 🌟 Vision
-Kashmir has a rich oral tradition filled with proverbs and idioms that encapsulate centuries of wisdom. As generations shift, this linguistic heritage is at risk of fading. **Kashmiri Idioms** is a digital platform designed to preserve, celebrate, and teach this cultural treasure to the modern world using cutting-edge technology.
+**Learn Kashmiri, Your Way.**
 
-## 🚀 Features
+Hečhun is an interactive, adaptive platform designed to bridge tradition with technology, making the Kashmiri language accessible to the next generation. Built by students from the **University of Kashmir** as part of the **Design Your Degree (DYD)** program, Hečhun combines modern pedagogy with AI to prevent the fading of our linguistic heritage.
 
-### 📖 Comprehensive Idiom Library
-Explore a vast, searchable collection of authentic Kashmiri idioms. Each entry provides:
-- **Kashmiri text** (Perso-Arabic script)
-- **Roman transliteration** for pronunciation
-- **English translation** and literal meaning
-- **Cultural context** to understand usage
+## 🌟 Mission
+Our mission is to democratize access to Kashmiri language learning. Whether you want to reconnect with your roots or explore a new culture, Hečhun adapts to your pace, focusing on reading, writing, speaking, and cultural nuance.
 
-### 🎓 Hečhun (Learning)
-A structured, gamified learning path (`/hechun`) taking users from the basics to fluency:
-- **Alphabet Lessons**: Learn the script and sounds.
-- **Interactive Quizzes**: Test your knowledge.
-- **Progress Tracking**: Earn badges and climb the leaderboard.
+## 🚀 Key Features
 
-### 🤖 AI Speech Recognition
-Practice your pronunciation with our integrated AI model. The system listens to you speak Kashmiri words/phrases and provides real-time feedback, making learning interactive and effective.
+### 🎓 Adaptive Learning Path
+Hečhun isn't just a static course. It creates a **dynamic, personalized curriculum** for each user.
+- **Skill Vectors**: We track your proficiency in Reading, Writing, Grammar, Vocabulary, and Speaking.
+- **Smart Recommendations**: The system suggests the next best lesson based on your current gaps.
 
-### 🏆 Gamification
-- **Leaderboards**: Compete with other learners (`/leaderboard`).
-- **Streaks & XP**: Stay motivated with daily goals.
-- **Badges**: Unlock achievements for your milestones.
+### 🗣️ AI-Powered Pronunciation
+Master the unique sounds of Kashmiri with our integrated AI.
+- **Real-time Feedback**: Powered by a custom **Wav2Vec2** model, Hečhun listens to your pronunciation and provides instant accuracy scores.
+- **Interactive Exercises**: Speak directly to the app to practice phonetics and conversation.
 
-### 🤝 Community Driven
-Users can submit new idioms (`/submit`) to grow the archive. Submissions are verified to maintain authenticity.
+### 🎮 Gamification & Engagement
+Keeping you motivated on your journey.
+- **Leaderboards**: Compete with friends and the community.
+- **Streak System**: Build a daily learning habit.
+- **XP & Badges**: Earn rewards as you master new concepts.
 
-## 🛠 Tech Stack
+
+## 🛠 Technology
 - **Frontend**: Next.js 16 (React), Tailwind CSS
-- **Backend & Auth**: Supabase
-- **Styling**: Tailwind V4, Custom "Gold & Navy" Theme
-- **Data**: Postgres
-- **AI/ML**: Custom Speech-to-Text inference (Python)
-
-## 🎨 Theme
-The project features a premium **Gold & Navy** aesthetic, inspired by Kashmiri craftsmanship (Papier-mâché, wood carving), offering a visually stunning experience.
+- **Backend**: Supabase (PostgreSQL, Auth)
+- **AI/ML**: Python (Wav2Vec2 Inference)
+- **Design**: Glassmorphism, Dark/Light Mode, Responsive UI
 
 ## 👥 The Team
-Our group **DYD's Spirit** includes students from **Kashmir University**, namely **Sulaiman Shabir, Tehniyah Rayaz, Furqan Malik, Farees Ahmed,** and **Anha Nabi** as part of the **Design Your Degree (DYD)** program. We are passionate about merging culture with technology.
+We are **DYD's Spirit**, a group of passionate students from the **University of Kashmir**.
+
+- **Sulaiman Shabir** - *Co-Leader & Main Developer*
+  - Architecting the adaptive learning engine and integrating Wav2Vec2 AI for real-time pronunciation feedback.
+- **Tehniyah Rayaz** - *Co-Leader & Creative Lead*
+  - Crafting the visual identity and intuitive UI that makes learning Kashmiri accessible and engaging.
+- **Furqan Malik** - *Content & Research*
+  - Structuring the comprehensive curriculum and verifying cultural nuances for the adaptive learning path.
+- **Farees Ahmed** - *UX & Content Curation*
+  - Optimizing the user journey and curating content to ensure a seamless progression from basics to fluency.
+- **Anha Nabi** - *Content Verification*
+  - Ensuring linguistic precision and phonetic accuracy for the AI training dataset and lesson content.
 
 ---
-*Preserving the past, building for the future.*
+*Hečhun — Bridging Tradition with Technology.*
