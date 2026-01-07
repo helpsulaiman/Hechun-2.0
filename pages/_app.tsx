@@ -8,7 +8,7 @@ import '../styles/globals.css';
 import '../styles/BubbleMenu.css'; // Global styles for BubbleMenu
 
 const kashmiriFont = localFont({
-    src: '../styles/fonts/gulmarg.ttf',
+    src: '../styles/fonts/NNU.ttf',
     variable: '--font-kashmiri',
     display: 'swap',
 });
