@@ -316,14 +316,7 @@ const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ init
                                                     {isCurrentUser && <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">You</span>}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                                    <ThemeImage
-                                                        srcLight="/flags/kashmir.png" // Fallback or use icon
-                                                        srcDark="/flags/kashmir.png"
-                                                        alt=""
-                                                        width={16}
-                                                        height={10}
-                                                        className="inline opacity-0"
-                                                    />
+                                                    {/* Flag removed */}
                                                     {rUser.lessons_completed} Lessons Completed
                                                 </div>
                                             </div>
