@@ -70,7 +70,7 @@ export default function HomePage() {
 function WelcomeView() {
   return (
     <Layout title="Hečhun" fullWidth>
-      <div className="min-h-[85vh] flex flex-col items-center justify-center relative overflow-hidden bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-background">
         {/* Background Elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
           <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-3xl"></div>
@@ -175,15 +175,15 @@ function WelcomeView() {
 
           <div className="mt-12 flex justify-center gap-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-chart-2"></div>
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
               Dynamic Path
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-chart-1"></div>
+              <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
               Skill Tracking
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-chart-3"></div>
+              <div className="w-2 h-2 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]"></div>
               Cultural Immersion
             </div>
           </div>

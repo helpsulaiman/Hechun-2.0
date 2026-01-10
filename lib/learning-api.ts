@@ -175,15 +175,74 @@ export async function fetchUserProfile(supabase: SupabaseClient, userId: string)
 }
 
 export async function fetchLeaderboard(supabase: SupabaseClient, period: 'daily' | 'weekly' | 'all_time' = 'all_time'): Promise<UserProfile[]> {
-    // Optimized: Sort by XP or Lessons Completed
-    const { data, error } = await supabase
+    if (period === 'all_time') {
+        const { data, error } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .order('total_xp', { ascending: false })
+            .limit(50);
+
+        if (error) throw new ApiError(error.message);
+        return data || [];
+    }
+
+    // --- TIME-BASED LEADERBOARDS ---
+    let startTime: Date;
+    const now = new Date();
+
+    if (period === 'daily') {
+        // Reset at 12 AM IST (UTC+5:30)
+        // 1. Convert current UTC to IST
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(now.getTime() + istOffset);
+        // 2. Set to Midnight IST
+        istDate.setUTCHours(0, 0, 0, 0);
+        // 3. Convert back to UTC to get the query timestamp
+        startTime = new Date(istDate.getTime() - istOffset);
+    } else {
+        // Weekly: Rolling 7-day window
+        startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+
+    // 1. Fetch Progress in Window
+    const { data: progressData, error: progressError } = await supabase
+        .from('lesson_progress')
+        .select('user_id, score')
+        .gte('completed_at', startTime.toISOString());
+
+    if (progressError) throw new ApiError(progressError.message);
+
+    // 2. Aggregate XP per User
+    const userScores: Record<string, { xp: number, lessons: number }> = {};
+
+    progressData?.forEach((p: any) => {
+        if (!userScores[p.user_id]) {
+            userScores[p.user_id] = { xp: 0, lessons: 0 };
+        }
+        // Calculation must match submitLessonProgress logic (score * 20 typically)
+        userScores[p.user_id].xp += Math.floor(p.score * 20);
+        if (p.score >= 0.6) userScores[p.user_id].lessons += 1;
+    });
+
+    const userIds = Object.keys(userScores);
+    if (userIds.length === 0) return [];
+
+    // 3. Fetch User Details
+    const { data: profiles, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
-        .order('total_xp', { ascending: false }) // XP is the new metric
-        .limit(50);
+        .in('user_id', userIds);
 
-    if (error) throw new ApiError(error.message);
-    return data || [];
+    if (profileError) throw new ApiError(profileError.message);
+
+    // 4. Merge & Sort
+    const leaderboard = profiles?.map((profile: UserProfile) => ({
+        ...profile,
+        total_xp: userScores[profile.user_id]?.xp || 0, // Override total with period XP
+        lessons_completed: userScores[profile.user_id]?.lessons || 0
+    })) || [];
+
+    return leaderboard.sort((a, b) => b.total_xp - a.total_xp).slice(0, 50);
 }
 
 // --- PROGRESS ---

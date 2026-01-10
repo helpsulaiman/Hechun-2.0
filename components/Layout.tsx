@@ -139,7 +139,7 @@ const Layout: React.FC<LayoutProps> = ({
             </Head>
 
             <div className="min-h-screen flex flex-col">
-                <header className="container mx-auto flex pt-4 px-4 z-50 relative pointer-events-none">
+                <header className={`container mx-auto flex pt-4 px-4 z-50 pointer-events-none ${fullWidth ? 'absolute top-0 left-0 right-0' : 'relative'}`}>
                     {/* Pointer events none allows clicking through header if needed, but we need clickable children */}
                     {/* Pointer events none allows clicking through header if needed, but we need clickable children */}
                     <div className="pointer-events-auto">
@@ -182,7 +182,7 @@ const Layout: React.FC<LayoutProps> = ({
                     </div>
                 </header>
 
-                <main className={`flex-1 w-full ${fullWidth ? '' : 'max-w-[1400px] mx-auto pt-24 sm:pt-32 pb-16'}`}>
+                <main className={`flex-1 w-full min-h-screen ${fullWidth ? '' : 'max-w-[1400px] mx-auto pt-24 sm:pt-32 pb-16'}`}>
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={router.pathname}
