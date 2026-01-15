@@ -81,8 +81,8 @@ function WelcomeView() {
           <div className="mb-8 flex justify-center">
             <div className="w-60 h-60 md:w-80 md:h-80 relative animate-float">
               <ThemeImage
-                srcLight="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_L.png"
-                srcDark="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_D.png"
+                srcLight="/hechun_logo/hechun_full_lm.png"
+                srcDark="/hechun_logo/hechun_full_dm.png"
                 alt="Hechun Logo"
                 width={400}
                 height={400}

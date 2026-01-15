@@ -127,12 +127,12 @@ const LeaderboardPage: React.FC<{ initialLeaderboard: UserProfile[] }> = ({ init
                     <div className="text-center mb-10">
                         <div className="flex justify-center mb-6">
                             <ThemeImage
-                                srcLight="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_L.png"
-                                srcDark="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_D.png"
+                                srcLight="/hechun_logo/hechun_full_lm.png"
+                                srcDark="/hechun_logo/hechun_full_dm.png"
                                 alt="Hechun"
-                                width={180}
-                                height={90}
-                                className="w-32 md:w-40 h-auto"
+                                width={300}
+                                height={150}
+                                className="w-52 md:w-72 h-auto"
                                 style={{ objectFit: 'contain' }}
                             />
                         </div>

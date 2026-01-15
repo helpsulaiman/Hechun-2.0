@@ -1,36 +1,77 @@
-
-import React from 'react';
+import React, { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import Layout from '../components/Layout';
-import ThemeImage from '@/components/ThemeImage';
 import SpotlightCard from '@/components/SpotlightCard';
 import styles from '@/styles/learn.module.css';
 import { BookOpen, TrendingUp, Mic, Feather, AlertTriangle } from 'lucide-react';
+
+const AnimatedLogo = () => {
+  const { scrollY } = useScroll();
+
+  // Animation Logic
+  const yRange = [0, 400]; // Scroll range
+
+  // Illustration moves DOWN to overlap text
+  // Distance calc: Container Height (~576px) - Text Bottom Gap (40px) - Text Height/Center - Illust Center
+  // Needs substantial movement to go from "Above" to "Behind"
+  const illustrateY = useTransform(scrollY, yRange, [0, 320]);
+
+  // Illustration shrinks
+  const illustrateScale = useTransform(scrollY, yRange, [1.1, 0.55]);
+  // Opacity fades slightly
+  const illustrateOpacity = useTransform(scrollY, yRange, [1, 0.9]);
+
+  return (
+    <div className="relative w-[28rem] h-[28rem] md:w-[32rem] md:h-[40rem] lg:w-[36rem] lg:h-[40rem] flex flex-col items-center justify-between">
+      {/* ILLUSTRATION LAYER (Background priority in flow, but Z-index handles stacking) */}
+      {/* Initial: At Top */}
+      <motion.div
+        style={{
+          y: illustrateY,
+          scale: illustrateScale,
+          opacity: illustrateOpacity,
+          zIndex: 10 // Behind Text (20)
+        }}
+        className="absolute top-0 w-full flex justify-center pointer-events-none"
+      >
+        {/* Light Mode Illust */}
+        <img src="/hechun_logo/hechun_illust_lm.png" alt="Hechun Icon" className="w-80 h-80 md:w-96 md:h-96 lg:w-[30rem] lg:h-[30rem] dark:hidden block object-contain" />
+        {/* Dark Mode Illust */}
+        <img src="/hechun_logo/hechun_illust_dm.png" alt="Hechun Icon" className="w-80 h-80 md:w-96 md:h-96 lg:w-[30rem] lg:h-[30rem] hidden dark:block object-contain" />
+      </motion.div>
+
+      {/* TEXT LAYER (Foreground) */}
+      {/* Initial: At Bottom */}
+      <motion.div
+        className="absolute bottom-0 z-20 w-full flex justify-center pointer-events-none"
+      >
+        {/* Light Mode Text */}
+        <img src="/hechun_logo/hechun_text_lm.png" alt="Hechun Text" className="w-80 md:w-96 lg:w-[30rem] dark:hidden block object-contain" />
+        {/* Dark Mode Text */}
+        <img src="/hechun_logo/hechun_text_dm.png" alt="Hechun Text" className="w-80 md:w-96 lg:w-[30rem] hidden dark:block object-contain" />
+      </motion.div>
+    </div>
+  );
+};
 
 const AboutProjectPage: React.FC = () => {
   return (
     <Layout title="About Project - Hečhun" fullWidth={true}>
       <div className={`${styles.learnContainer} bg-gradient-to-b from-primary/5 via-background to-background`}>
 
-        {/* --- Hero Section --- */}
-        <div className="text-center pt-16 pb-12 px-4 max-w-4xl mx-auto relative overflow-visible">
-          {/* Decorative Blur behind logo */}
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/20 blur-[100px] rounded-full pointer-events-none"></div>
+        {/* --- Hero Section (Animated) --- */}
+        <div className="text-center pt-20 md:pt-8 pb-8 px-4 max-w-5xl mx-auto relative overflow-visible min-h-[90vh] flex flex-col items-center justify-start">
+          {/* Decorative Blur */}
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/20 blur-[120px] rounded-full pointer-events-none"></div>
 
-          <div className={styles.logoContainer}>
-            <ThemeImage
-              srcLight="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_L.png"
-              srcDark="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_D.png"
-              alt="Project Logo"
-              width={320}
-              height={320}
-              className="relative z-10 w-60 h-60 md:w-80 md:h-80 mx-auto drop-shadow-2xl"
-            />
+          <div className="relative w-full h-[40rem] flex justify-center items-start perspective-[1000px] mb-56">
+            <AnimatedLogo />
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-extrabold mb-6 mt-8 tracking-tight">
+          <h1 className="text-5xl md:text-7xl font-extrabold mb-8 tracking-tight relative z-30 leading-tight">
             About <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-amber-500">The Project</span>
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
+          <p className="text-2xl md:text-3xl text-muted-foreground max-w-3xl mx-auto font-light leading-relaxed relative z-30">
             Safeguarding Our Voice: A Digital Initiative for the Kashmiri Language
           </p>
         </div>

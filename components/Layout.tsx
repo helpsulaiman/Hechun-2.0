@@ -148,13 +148,13 @@ const Layout: React.FC<LayoutProps> = ({
                                 <Link href="/" className="h-full flex items-center hover:opacity-80 transition-opacity duration-200 pointer-events-auto">
                                     {/* Light Mode Logo */}
                                     <img
-                                        src="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_L.png"
+                                        src="/hechun_logo/hechun_illust_lm.png"
                                         alt="Hechun Logo"
                                         className="h-16 md:h-32 w-auto object-contain translate-y-5 md:translate-y-7 dark:hidden block"
                                     />
                                     {/* Dark Mode Logo */}
                                     <img
-                                        src="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_D.png"
+                                        src="/hechun_logo/hechun_illust_dm.png"
                                         alt="Hechun Logo"
                                         className="h-16 md:h-32 w-auto object-contain translate-y-5 md:translate-y-7 hidden dark:block"
                                     />
