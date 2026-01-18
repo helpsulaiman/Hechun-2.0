@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://hechun.tech
+
+# Sitemaps
+Sitemap: https://hechun.tech/sitemap.xml

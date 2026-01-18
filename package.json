@@ -6,6 +6,7 @@
     "dev": "next dev",
     "dev:https": "next dev --experimental-https",
     "build": "npx prisma generate && next build",
+    "postbuild": "next-sitemap",
     "start": "next start",
     "lint": "next lint",
     "seed": "npx ts-node scripts/ingest_basics.ts"
@@ -58,6 +59,7 @@
     "concurrently": "^9.2.1",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.0.7",
+    "next-sitemap": "^4.2.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.10",
     "typescript": "^5"
