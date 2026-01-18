@@ -14,14 +14,14 @@ const STEPS = [
         subtitle: "Let's personalize your Kashmiri learning path. It only takes a minute.",
         icon: (
             <div className="w-32 h-32 relative animate-float">
-                <ThemeImage
-                    srcLight="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_L.png"
-                    srcDark="https://hdbmcwmgolmxmtllaclx.supabase.co/storage/v1/object/public/images/Hechun_D.png"
-                    alt="Hechun Logo"
-                    width={128}
-                    height={128}
-                    className="object-contain w-full h-full drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-                />
+              <ThemeImage
+                srcLight="/hechun_logo/hechun_full_lm.png"
+                srcDark="/hechun_logo/hechun_full_dm.png"
+                alt="Hechun Logo"
+                width={400}
+                height={400}
+                className="object-contain w-full h-full drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+              />
             </div>
         ),
     },

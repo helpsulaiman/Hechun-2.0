@@ -40,3 +40,6 @@ next-env.d.ts
 /tmp
 
 /lib/generated/prisma
+
+#guidelines
+/duolingo writing guidelines
