@@ -11,10 +11,10 @@ const AnimatedLogo = () => {
   // Animation Logic
   const yRange = [0, 400]; // Scroll range
 
-  // Illustration moves DOWN to overlap text
-  // Distance calc: Container Height (~576px) - Text Bottom Gap (40px) - Text Height/Center - Illust Center
-  // Needs substantial movement to go from "Above" to "Behind"
-  const illustrateY = useTransform(scrollY, yRange, [0, 320]);
+  // Adjusted travel distance for responsive heights.
+  // Mobile height is smaller, so we need less travel distance to avoid overshooting.
+  // We use a compromise or percentage if possible, but for now we reduce to 260 to be safer on mobile.
+  const illustrateY = useTransform(scrollY, yRange, [0, 180]);
 
   // Illustration shrinks
   const illustrateScale = useTransform(scrollY, yRange, [1.1, 0.55]);
@@ -22,7 +22,7 @@ const AnimatedLogo = () => {
   const illustrateOpacity = useTransform(scrollY, yRange, [1, 0.9]);
 
   return (
-    <div className="relative w-[28rem] h-[28rem] md:w-[32rem] md:h-[40rem] lg:w-[36rem] lg:h-[40rem] flex flex-col items-center justify-between">
+    <div className="relative w-full max-w-[18rem] h-[22rem] md:max-w-[32rem] md:h-[40rem] lg:max-w-[36rem] lg:h-[40rem] flex flex-col items-center justify-between mx-auto">
       {/* ILLUSTRATION LAYER (Background priority in flow, but Z-index handles stacking) */}
       {/* Initial: At Top */}
       <motion.div
@@ -35,9 +35,9 @@ const AnimatedLogo = () => {
         className="absolute top-0 w-full flex justify-center pointer-events-none"
       >
         {/* Light Mode Illust */}
-        <img src="/hechun_logo/hechun_illust_lm.png" alt="Hechun Icon" className="w-80 h-80 md:w-96 md:h-96 lg:w-[30rem] lg:h-[30rem] dark:hidden block object-contain" />
+        <img src="/hechun_logo/hechun_illust_lm.png" alt="Hechun Icon" className="w-60 h-60 md:w-96 md:h-96 lg:w-[30rem] lg:h-[30rem] dark:hidden block object-contain" />
         {/* Dark Mode Illust */}
-        <img src="/hechun_logo/hechun_illust_dm.png" alt="Hechun Icon" className="w-80 h-80 md:w-96 md:h-96 lg:w-[30rem] lg:h-[30rem] hidden dark:block object-contain" />
+        <img src="/hechun_logo/hechun_illust_dm.png" alt="Hechun Icon" className="w-60 h-60 md:w-96 md:h-96 lg:w-[30rem] lg:h-[30rem] hidden dark:block object-contain" />
       </motion.div>
 
       {/* TEXT LAYER (Foreground) */}
@@ -46,9 +46,9 @@ const AnimatedLogo = () => {
         className="absolute bottom-0 z-20 w-full flex justify-center pointer-events-none"
       >
         {/* Light Mode Text */}
-        <img src="/hechun_logo/hechun_text_lm.png" alt="Hechun Text" className="w-80 md:w-96 lg:w-[30rem] dark:hidden block object-contain" />
+        <img src="/hechun_logo/hechun_text_lm.png" alt="Hechun Text" className="w-64 md:w-96 lg:w-[30rem] dark:hidden block object-contain" />
         {/* Dark Mode Text */}
-        <img src="/hechun_logo/hechun_text_dm.png" alt="Hechun Text" className="w-80 md:w-96 lg:w-[30rem] hidden dark:block object-contain" />
+        <img src="/hechun_logo/hechun_text_dm.png" alt="Hechun Text" className="w-64 md:w-96 lg:w-[30rem] hidden dark:block object-contain" />
       </motion.div>
     </div>
   );
@@ -64,7 +64,7 @@ const AboutProjectPage: React.FC = () => {
           {/* Decorative Blur */}
           <div className="absolute top-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/20 blur-[120px] rounded-full pointer-events-none"></div>
 
-          <div className="relative w-full h-[40rem] flex justify-center items-start perspective-[1000px] mb-56">
+          <div className="relative w-full h-[22rem] md:h-[40rem] flex justify-center items-start perspective-[1000px] mb-12 md:mb-56">
             <AnimatedLogo />
           </div>
 
