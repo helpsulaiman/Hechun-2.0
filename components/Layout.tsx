@@ -16,19 +16,41 @@ interface LayoutProps {
     title?: string;
     description?: string;
     fullWidth?: boolean;
+    keywords?: string;
+    ogImage?: string;
 }
 
 const Layout: React.FC<LayoutProps> = ({
     children,
-    title = 'Hečhun',
-    description = 'Discover traditional Kashmiri idioms and their meanings. Explore our collection of cultural expressions that carry the wisdom of Kashmir.',
-    fullWidth = false
+    title = 'Hečhun - Learn Kashmiri Language',
+    description = 'Hečhun is the best platform to learn Kashmiri (Koshur) online. Adaptive lessons for reading, writing, and speaking Kashmiri.',
+    fullWidth = false,
+    keywords = 'Learn kashmiri, hechun, kashmiri language, kashwords, hečhun, learn koshur',
+    ogImage = 'https://hechun.tech/hechun_logo/hechun_full_lm.png'
 }) => {
     const router = useRouter();
     const user = useUser();
     const supabase = useSupabaseClient();
     const [isAdmin, setIsAdmin] = useState(false);
     const [streak, setStreak] = useState(0);
+
+    const siteUrl = 'https://hechun.tech';
+    const canonicalUrl = `${siteUrl}${router.asPath}`;
+
+    // Schema.org Structured Data
+    const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Hečhun",
+        "alternateName": ["Hechun", "Kashmiri Learning"],
+        "url": siteUrl,
+        "description": description,
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": `${siteUrl}/search?q={search_term_string}`,
+            "query-input": "required name=search_term_string"
+        }
+    };
 
     // Check admin status and fetch streak when user changes available
     useEffect(() => {
@@ -132,8 +154,47 @@ const Layout: React.FC<LayoutProps> = ({
             <Head>
                 <title>{title}</title>
                 <meta name="description" content={description} />
+                <meta name="keywords" content={keywords} />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <link rel="icon" href="/favicon.ico" />
+
+                {/* Canonical URL */}
+                <link rel="canonical" href={canonicalUrl} />
+
+                {/* Open Graph / Facebook */}
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content={canonicalUrl} />
+                <meta property="og:title" content={title} />
+                <meta property="og:description" content={description} />
+                <meta property="og:image" content={ogImage} />
+                <meta property="og:site_name" content="Hečhun" />
+
+                {/* Twitter */}
+                <meta property="twitter:card" content="summary_large_image" />
+                <meta property="twitter:url" content={canonicalUrl} />
+                <meta property="twitter:title" content={title} />
+                <meta property="twitter:description" content={description} />
+                <meta property="twitter:image" content={ogImage} />
+
+                {/* Structured Data - WebSite */}
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+                />
+
+                {/* Structured Data - Organization (For Logo) */}
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "Organization",
+                            "name": "Hečhun",
+                            "url": siteUrl,
+                            "logo": "https://hechun.tech/hechun_logo/hechun_full_lm.png"
+                        })
+                    }}
+                />
+
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
             </Head>

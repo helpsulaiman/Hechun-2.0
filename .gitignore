@@ -16,6 +16,7 @@
 # Misc
 .DS_Store
 *.pem
+/clear
 
 # Debug
 npm-debug.log*

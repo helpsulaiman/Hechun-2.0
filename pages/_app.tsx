@@ -13,19 +13,23 @@ const kashmiriFont = localFont({
     display: 'swap',
 });
 
+import ConvexClientProvider from '../components/ConvexClientProvider';
 import OfflineAlert from '../components/OfflineAlert';
+
 
 function App({ Component, pageProps }: AppProps<{ initialSession: Session }>) {
     const [supabaseClient] = useState(() => createPagesBrowserClient());
 
     return (
         <SessionContextProvider supabaseClient={supabaseClient} initialSession={pageProps.initialSession}>
-            <div className={`${kashmiriFont.variable}`}>
-                {/* This line is the fix. It renders the actual page you are visiting. */}
-                <Component {...pageProps} />
-                <Analytics />
-                <OfflineAlert />
-            </div>
+            <ConvexClientProvider>
+                <div className={`${kashmiriFont.variable}`}>
+                    {/* This line is the fix. It renders the actual page you are visiting. */}
+                    <Component {...pageProps} />
+                    <Analytics />
+                    <OfflineAlert />
+                </div>
+            </ConvexClientProvider>
         </SessionContextProvider>
     );
 }

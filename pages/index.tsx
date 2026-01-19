@@ -69,7 +69,12 @@ export default function HomePage() {
 
 function WelcomeView() {
   return (
-    <Layout title="Hečhun" fullWidth>
+    <Layout
+      title="Hečhun - Learn Kashmiri Language | The Best Way to Learn Koshur"
+      keywords="Learn kashmiri, hechun, hechun kashmiri, hečhun, kashmiri, kashwords, learn koshur, kashmiri language app, kashmiri lessons"
+      description="Start learning Kashmiri (Koshur) today with Hečhun. An adaptive platform that personalizes reading, writing, and speaking lessons just for you."
+      fullWidth
+    >
       <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-background">
         {/* Background Elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
