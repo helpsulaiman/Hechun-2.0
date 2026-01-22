@@ -72,7 +72,7 @@ const HechunLoginPage: React.FC = () => {
     };
 
     return (
-        <Layout title="Login - Hečhun">
+        <Layout title="Login - Hečhun" noIndex={true}>
             <div className="form-container" style={{ maxWidth: '450px' }}>
                 <div className="text-center">
                     <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>

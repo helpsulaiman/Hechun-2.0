@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import {
@@ -148,32 +149,36 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     return (
-        <div className="h-screen w-full flex bg-background text-foreground font-sans relative overflow-hidden">
-            {/* Mobile Header Trigger */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-md border-b border-border flex items-center px-4 z-40">
-                <button
-                    onClick={() => setIsSidebarOpen(true)}
-                    className="p-2 text-foreground hover:bg-muted rounded-lg transition-colors"
-                >
-                    <Menu className="w-6 h-6" />
-                </button>
-                <span className="ml-3 font-bold text-lg">Dashboard</span>
-            </div>
-
-            <Sidebar
-                isOpen={isSidebarOpen}
-                setIsOpen={setIsSidebarOpen}
-                isCollapsed={isCollapsed}
-                setIsCollapsed={setIsCollapsed}
-            />
-
-            <main className="flex-grow relative h-full overflow-y-auto no-scrollbar pt-16 md:pt-0 bg-muted/20">
-                <div className="max-w-7xl mx-auto p-4 md:p-8 min-h-full">
-                    {children}
+        <>
+            <Head>
+                <meta name="robots" content="noindex, nofollow" />
+            </Head>
+            <div className="h-screen w-full flex bg-background text-foreground font-sans relative overflow-hidden">
+                {/* Mobile Header Trigger */}
+                <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-md border-b border-border flex items-center px-4 z-40">
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 text-foreground hover:bg-muted rounded-lg transition-colors"
+                    >
+                        <Menu className="w-6 h-6" />
+                    </button>
+                    <span className="ml-3 font-bold text-lg">Dashboard</span>
                 </div>
-            </main>
-        </div>
-    );
+
+                <Sidebar
+                    isOpen={isSidebarOpen}
+                    setIsOpen={setIsSidebarOpen}
+                    isCollapsed={isCollapsed}
+                    setIsCollapsed={setIsCollapsed}
+                />
+
+                <main className="flex-grow relative h-full overflow-y-auto no-scrollbar pt-16 md:pt-0 bg-muted/20">
+                    <div className="max-w-7xl mx-auto p-4 md:p-8 min-h-full">
+                        {children}
+                    </div>
+                </main>
+            </div>
+            );
 };
 
-export default DashboardLayout;
+            export default DashboardLayout;

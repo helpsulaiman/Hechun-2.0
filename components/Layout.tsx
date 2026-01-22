@@ -18,6 +18,7 @@ interface LayoutProps {
     fullWidth?: boolean;
     keywords?: string;
     ogImage?: string;
+    noIndex?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -26,7 +27,8 @@ const Layout: React.FC<LayoutProps> = ({
     description = 'Hečhun is the best platform to learn Kashmiri (Koshur) online. Adaptive lessons for reading, writing, and speaking Kashmiri.',
     fullWidth = false,
     keywords = 'Learn kashmiri, hechun, kashmiri language, kashwords, hečhun, learn koshur',
-    ogImage = 'https://hechun.tech/hechun_logo/hechun_full_lm.png'
+    ogImage = 'https://hechun.tech/hechun_logo/hechun_full_lm.png',
+    noIndex = false
 }) => {
     const router = useRouter();
     const user = useUser();
@@ -156,6 +158,9 @@ const Layout: React.FC<LayoutProps> = ({
                 <meta name="description" content={description} />
                 <meta name="keywords" content={keywords} />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+                {/* NoIndex for sensitive pages */}
+                {noIndex && <meta name="robots" content="noindex, nofollow" />}
 
                 {/* Canonical URL */}
                 <link rel="canonical" href={canonicalUrl} />
