@@ -178,7 +178,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     </div>
                 </main>
             </div>
-            );
+        </>
+    );
 };
 
-            export default DashboardLayout;
+export default DashboardLayout;
