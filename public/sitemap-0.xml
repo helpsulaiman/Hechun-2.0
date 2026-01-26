@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
-<url><loc>https://hechun.tech</loc><lastmod>2026-01-19T06:46:49.071Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/about</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/about-project</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/about-us</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/adminLogin</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/auth/forgot-password</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/auth/login</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/auth/register</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/auth/update-password</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/dashboard</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/dashboard/lessons</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/dashboard/users</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/history</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/leaderboard</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/onboarding/diagnostic</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/onboarding/start</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://hechun.tech/profile</loc><lastmod>2026-01-19T06:46:49.073Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://hechun.tech</loc><lastmod>2026-01-26T05:05:01.625Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://hechun.tech/about-project</loc><lastmod>2026-01-26T05:05:01.627Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://hechun.tech/about-us</loc><lastmod>2026-01-26T05:05:01.627Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://hechun.tech/dashboard</loc><lastmod>2026-01-26T05:05:01.627Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://hechun.tech/history</loc><lastmod>2026-01-26T05:05:01.627Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://hechun.tech/leaderboard</loc><lastmod>2026-01-26T05:05:01.627Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://hechun.tech/onboarding/diagnostic</loc><lastmod>2026-01-26T05:05:01.627Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://hechun.tech/onboarding/start</loc><lastmod>2026-01-26T05:05:01.627Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://hechun.tech/profile</loc><lastmod>2026-01-26T05:05:01.627Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
 </urlset>

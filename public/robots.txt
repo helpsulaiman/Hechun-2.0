@@ -1,9 +1,12 @@
 # *
 User-agent: *
 Allow: /
+Disallow: /dashboard/*
+Disallow: /adminLogin
+Disallow: /auth/*
+Disallow: /404
+Disallow: /500
 
-# Host
-Host: https://hechun.tech
 
 # Sitemaps
 Sitemap: https://hechun.tech/sitemap.xml
