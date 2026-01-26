@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:https": "next dev --experimental-https",
     "build": "npx prisma generate && next build",
-    "postbuild": "next-sitemap && sed -i '' '/Host/d' public/robots.txt",
+    "postbuild": "next-sitemap && node scripts/fix-robots.js",
     "start": "next start",
     "lint": "next lint",
     "seed": "npx ts-node scripts/ingest_basics.ts"

@@ -7,6 +7,7 @@ Disallow: /auth/*
 Disallow: /404
 Disallow: /500
 
+# Host
 
 # Sitemaps
 Sitemap: https://hechun.tech/sitemap.xml
