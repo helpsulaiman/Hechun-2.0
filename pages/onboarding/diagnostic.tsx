@@ -61,7 +61,7 @@ const QUESTION_POOL: Question[] = [
     { id: 304, complexity: 6, category: 'grammar_vocabulary', skill: 'grammar', text: '"Su chuh" means:', options: ['She is', 'He is', 'It is', 'They are'], correct: 1 },
     { id: 305, complexity: 3, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Opposite of "Nyeber" (Outside):', options: ['Peth', 'Bon', 'Andar', 'Pat'], correct: 2 },
     // { id: 306, complexity: 7, category: 'grammar_vocabulary', skill: 'grammar', text: 'Ergative Case marker (Agentive):', options: ['-us', '-an', '-as', '-uk'], correct: 1 },
-    { id: 307, complexity: 4, category: 'grammar_vocabulary', skill: 'grammar', text: '"Yath" uses which case?', options: ['Nominative', 'Genitive', 'Ablative', 'Dative'], correct: 3 },
+    { id: 307, complexity: 10, category: 'grammar_vocabulary', skill: 'grammar', text: '"Yath" uses which case?', options: ['Nominative', 'Genitive', 'Ablative', 'Dative'], correct: 3 },
     { id: 308, complexity: 8, category: 'grammar_vocabulary', skill: 'grammar', text: 'Conjunction "Magar":', options: ['And', 'But', 'Or', 'So'], correct: 1 },
     { id: 309, complexity: 9, category: 'grammar_vocabulary', skill: 'grammar', text: 'Complex Verb: "Par-n-aav-un" (To teach/cause to read):', options: ['Passive', 'Active', 'Causative', 'Reflexive'], correct: 2 },
     { id: 310, complexity: 10, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Proverb meaning: "Boni mohar tulun"?', options: ['Strong leader', 'Rich man', 'Chopping a chinar', 'An impossible task'], correct: 3 },

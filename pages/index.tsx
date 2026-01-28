@@ -71,7 +71,7 @@ function WelcomeView() {
   return (
     <Layout
       title="Hečhun - Learn Kashmiri Language | The Best Way to Learn Koshur"
-      keywords="Learn kashmiri, hechun, hechun kashmiri, hečhun, kashmiri, kashwords, learn koshur, kashmiri language app, kashmiri lessons"
+      keywords="Learn kashmiri, hechun, hechun kashmiri, hečhun, kashmiri, kashwords, learn koshur, kashmiri language app, kashmiri lessons, learn kashmiri for free"
       description="Start learning Kashmiri (Koshur) today with Hečhun. An adaptive platform that personalizes reading, writing, and speaking lessons just for you."
       fullWidth
     >
@@ -277,7 +277,7 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
             Your Learning Path
           </h1>
           <div className="bg-primary/10 text-primary px-4 py-1 rounded-full text-sm font-medium">
-            Beta v2.0
+            Beta v2.05
           </div>
         </div>
 
