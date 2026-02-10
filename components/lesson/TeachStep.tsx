@@ -45,7 +45,19 @@ export default function TeachStep({ content, showTransliteration }: TeachStepPro
                 {/* Content Body */}
                 <div className="prose dark:prose-invert max-w-none text-lg leading-relaxed text-card-foreground">
                     {/* We'd ideally use a markdown parser here. For MVP, we'll assume it's just text */}
-                    <p>{content.description}</p>
+                    <p>{content.text || content.description}</p>
+
+                    {/* Render examples if present */}
+                    {(content as any).examples && Array.isArray((content as any).examples) && (
+                        <div className="mt-6 space-y-3">
+                            {(content as any).examples.map((example: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+                                    <span className="text-2xl text-kashmiri font-bold text-primary">{example.kashmiri}</span>
+                                    <span className="text-sm text-muted-foreground">{example.english}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {showTransliteration && content.transliteration && (
                         <p className="mt-4 text-primary font-mono text-base border-t border-border pt-4">
@@ -68,7 +80,7 @@ export default function TeachStep({ content, showTransliteration }: TeachStepPro
             </div>
 
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-lg leading-relaxed">
-                {content.description}
+                {content.text || content.description}
             </p>
         </div>
     );

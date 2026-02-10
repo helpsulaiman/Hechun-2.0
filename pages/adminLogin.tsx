@@ -1,51 +1,13 @@
-import React, { useState } from 'react';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import React from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
-import radixStyles from '../styles/RadixTabs.module.css';
-import { Google } from '../components/icons/Google';
 
 const LoginPage = () => {
-    const supabase = useSupabaseClient();
     const router = useRouter();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError(null);
-
-        try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-
-            if (error) throw error;
-            router.push('/dashboard');
-        } catch (err: any) {
-            console.error('Login Error:', err); // DEBUG LOG
-            setError(err.message || 'An unexpected error occurred');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSocialLogin = async (provider: 'google') => {
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider,
-                options: {
-                    redirectTo: `${window.location.origin}/dashboard`,
-                },
-            });
-            if (error) throw error;
-        } catch (err: any) {
-            setError(err.message);
-        }
+    const handleAdminLogin = () => {
+        // Redirect to Auth0 login with admin prompt (v4 uses /auth/login)
+        router.push('/auth/login?returnTo=/dashboard');
     };
 
     return (
@@ -56,67 +18,27 @@ const LoginPage = () => {
                     <p className="text-muted-foreground mb-8">Please sign in to continue.</p>
                 </div>
 
-                <form onSubmit={handleLogin}>
-                    <fieldset className={radixStyles.Fieldset}>
-                        <label htmlFor="email" className={radixStyles.Label}>
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            id="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className={radixStyles.Input}
-                            required
-                        />
-                    </fieldset>
-                    <fieldset className={radixStyles.Fieldset}>
-                        <label htmlFor="password" className={radixStyles.Label}>
-                            Password
-                        </label>
-                        <input
-                            type="password"
-                            id="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className={radixStyles.Input}
-                            required
-                        />
-                    </fieldset>
+                {/* Admin Login Button */}
+                <button
+                    onClick={handleAdminLogin}
+                    className="w-full px-6 py-3 mb-4 text-base font-semibold text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors shadow-md hover:shadow-lg"
+                >
+                    Sign in as Admin
+                </button>
 
-                    {error && <p className="form-help-text text-red-500 mb-4">{error}</p>}
+                <p className="text-center text-sm text-muted-foreground mt-6">
+                    Not an admin?{' '}
+                    <a
+                        href="/auth/login"
+                        className="text-primary font-medium hover:underline"
+                    >
+                        Sign in as User
+                    </a>
+                </p>
 
-                    <div className="mt-6">
-                        <button
-                            type="submit"
-                            className={`${radixStyles.Button} ${radixStyles.ButtonBlue} w-full`}
-                            disabled={loading}
-                        >
-                            {loading ? 'Signing In...' : 'Sign In'}
-                        </button>
-                    </div>
-                </form>
-
-                <div className="mt-6">
-                    <div className="relative mb-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-border"></div>
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-card text-muted-foreground">Or continue with</span>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3">
-                        <button
-                            onClick={() => handleSocialLogin('google')}
-                            className="w-full flex justify-center items-center py-2 px-4 border border-border rounded-md shadow-sm bg-card text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition"
-                        >
-                            <Google className="w-5 h-5 mr-3" />
-                            Google
-                        </button>
-                    </div>
-                </div>
+                <p className="text-center text-xs text-muted-foreground mt-4">
+                    Only authorized administrators can access the dashboard.
+                </p>
             </div>
         </Layout>
     );

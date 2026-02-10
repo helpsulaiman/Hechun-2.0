@@ -1,16 +1,20 @@
-import { LearningLesson } from '../../types/learning';
+// Mock lessons data extracted from lib/data/lessons.ts
+// These can be imported into Convex for seeding the database
 
-export const MOCK_LESSONS: Record<string, LearningLesson> = {
-    // 1. Introduction (Speaking)
-    '1': {
-        id: 1,
+const mockLessons = [
+    {
+        lesson_id: 5,
+        lesson_order: 5,
         title: "Introduction",
         description: "Learn how to say hello and introduce yourself.",
         xp_reward: 100,
-        skill_reward: { speaking: 5 },
-        skills_targeted: { speaking: 5 },
         complexity: 1,
-        lesson_order: 1,
+        skills_targeted: {
+            speaking: 0.7,
+            vocabulary: 0.3,
+            reading_writing: 0,
+            grammar: 0
+        },
         content: {
             type: 'structured',
             steps: [
@@ -68,17 +72,19 @@ export const MOCK_LESSONS: Record<string, LearningLesson> = {
             ]
         }
     },
-
-    // 2. Alphabet (Reading)
-    '2': {
-        id: 2,
+    {
+        lesson_id: 6,
+        lesson_order: 6,
         title: "The Alphabet",
         description: "Learn the unique vowels of Kashmiri.",
         xp_reward: 100,
-        skill_reward: { reading: 5 },
-        skills_targeted: { reading: 5 },
         complexity: 1,
-        lesson_order: 2,
+        skills_targeted: {
+            reading_writing: 0.9,
+            vocabulary: 0.1,
+            speaking: 0,
+            grammar: 0
+        },
         content: {
             type: 'phonetic',
             letters: [
@@ -98,21 +104,23 @@ export const MOCK_LESSONS: Record<string, LearningLesson> = {
                 { char: "ر", name: "Re", audio: "" },
                 { char: "ڑ", name: "Re (Hard)", audio: "" },
                 { char: "ز", name: "Ze", audio: "" },
-                { char: "ژ", name: "Tse", audio: "" } // Unique
+                { char: "ژ", name: "Tse", audio: "" }
             ]
         }
     },
-
-    // 3. Numbers & Counting (Vocab)
-    '3': {
-        id: 3,
+    {
+        lesson_id: 7,
+        lesson_order: 7,
         title: "Numbers 1-10",
         description: "Counting in Kashmiri.",
         xp_reward: 100,
-        skill_reward: { vocabulary: 5, speaking: 2 },
-        skills_targeted: { vocabulary: 5, speaking: 2 },
         complexity: 1,
-        lesson_order: 3,
+        skills_targeted: {
+            vocabulary: 0.7,
+            speaking: 0.3,
+            reading_writing: 0,
+            grammar: 0
+        },
         content: {
             type: 'list',
             items: [
@@ -129,17 +137,19 @@ export const MOCK_LESSONS: Record<string, LearningLesson> = {
             ]
         }
     },
-
-    // 4. Grammar Basics (Grammar)
-    '4': {
-        id: 4,
+    {
+        lesson_id: 8,
+        lesson_order: 8,
         title: "Pronouns",
         description: "I, You, He, She.",
         xp_reward: 100,
-        skill_reward: { grammar: 5 },
-        skills_targeted: { grammar: 5 },
         complexity: 2,
-        lesson_order: 4,
+        skills_targeted: {
+            grammar: 0.7,
+            vocabulary: 0.2,
+            speaking: 0.1,
+            reading_writing: 0
+        },
         content: {
             type: 'structured',
             steps: [
@@ -186,17 +196,19 @@ export const MOCK_LESSONS: Record<string, LearningLesson> = {
             ]
         }
     },
-
-    // 5. At the Market (Dialogue)
-    '5': {
-        id: 5,
+    {
+        lesson_id: 9,
+        lesson_order: 9,
         title: "At the Market",
         description: "Buying vegetables.",
         xp_reward: 150,
-        skill_reward: { speaking: 4, vocabulary: 3 },
-        skills_targeted: { speaking: 4, vocabulary: 3 },
         complexity: 3,
-        lesson_order: 5,
+        skills_targeted: {
+            speaking: 0.6,
+            vocabulary: 0.4,
+            reading_writing: 0,
+            grammar: 0
+        },
         content: {
             type: 'dialogue',
             lines: [
@@ -207,4 +219,9 @@ export const MOCK_LESSONS: Record<string, LearningLesson> = {
             ]
         }
     }
-};
+];
+
+// Export for use in Node.js or browser
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = mockLessons;
+}

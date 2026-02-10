@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useConvexAuth } from 'convex/react';
+import { useAuth0 } from '@auth0/auth0-react';
 import {
     LayoutDashboard,
     GraduationCap,
@@ -37,11 +38,10 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }) => {
     const router = useRouter();
-    const supabase = useSupabaseClient();
+    const { logout } = useAuth0();
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push('/');
+    const handleLogout = () => {
+        logout({ logoutParams: { returnTo: window.location.origin } });
     };
 
     return (

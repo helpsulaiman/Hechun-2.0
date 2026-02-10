@@ -25,6 +25,15 @@ export default function PhoneticLesson({ content, onComplete }: PhoneticLessonPr
         console.log(`Playing audio: ${path}`);
     };
 
+    // Validate content structure
+    if (!content?.letters || !Array.isArray(content.letters)) {
+        return (
+            <div className="text-center p-8 bg-destructive/10 rounded-lg border border-destructive/20">
+                <p className="text-destructive">Invalid phonetic lesson: missing letters array</p>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">

@@ -3,12 +3,10 @@ import { motion } from 'framer-motion';
 
 interface SkillRadarProps {
     skills: {
-        reading: number;
-        writing: number;
+        reading_writing: number;
         grammar: number;
         vocabulary: number;
         speaking: number;
-        culture?: number;
     };
     max?: number;
     size?: number;
@@ -20,13 +18,12 @@ export default function SkillRadar({ skills, size = 300, max = 100 }: SkillRadar
     // Increased radius to fill more space (was 0.35)
     const radius = size * 0.42;
 
-    // Axes Config (5 axes)
+    // Axes Config (4 axes for 4 skills)
     const axisConfig = [
-        { key: 'reading', label: 'Reading', angle: -90 },              // Top
-        { key: 'writing', label: 'Writing', angle: -90 + 72 },         // Top Right
-        { key: 'grammar', label: 'Grammar', angle: -90 + 144 },        // Bottom Right
-        { key: 'vocabulary', label: 'Vocab', angle: -90 + 216 },       // Bottom Left
-        { key: 'speaking', label: 'Speaking', angle: -90 + 288 }       // Top Left
+        { key: 'reading_writing', label: 'R&W', angle: -90 },           // Top
+        { key: 'speaking', label: 'Speaking', angle: 0 },               // Right
+        { key: 'grammar', label: 'Grammar', angle: 90 },                // Bottom
+        { key: 'vocabulary', label: 'Vocab', angle: 180 }               // Left
     ];
 
     const angles = axisConfig.map(a => a.angle * (Math.PI / 180));

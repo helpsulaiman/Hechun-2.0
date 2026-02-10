@@ -2,39 +2,39 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '../components/Layout';
 import Link from 'next/link';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useAuth0 } from '@auth0/auth0-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../convex/_generated/api';
 import { ArrowRight, Sparkles, Map, RotateCcw } from 'lucide-react';
 import ThemeImage from '../components/ThemeImage';
 import SkillRadar from '../components/SkillRadar';
 import GuestLoginNudge from '../components/GuestLoginNudge';
 
 export default function HomePage() {
-  const user = useUser();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth0();
   const [loading, setLoading] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
   const [guestSkills, setGuestSkills] = useState<any>(null);
-  const [userSkills, setUserSkills] = useState<any>(null);
+
+  // Fetch user profile from Convex
+  const userProfile = useQuery(
+    api.users.getUser,
+    isAuthenticated && user ? { user_id: user.sub! } : "skip"
+  );
 
   useEffect(() => {
     checkProfile();
-  }, [user]);
+  }, [user, userProfile, isAuthenticated]);
 
   const checkProfile = async () => {
     setLoading(true);
 
-    if (user) {
-      try {
-        const res = await fetch('/api/user');
-        const data = await res.json();
-        setHasProfile(data.hasProfile);
-
-        if (data.profile && data.profile.skill_vector) {
-          setUserSkills(data.profile.skill_vector);
-        }
-      } catch (e) {
-        console.error(e);
+    if (isAuthenticated && user) {
+      // Wait for userProfile to load
+      if (userProfile !== undefined) {
+        setHasProfile(!!userProfile);
+        setLoading(false);
       }
-      setLoading(false);
       return;
     }
 
@@ -64,7 +64,7 @@ export default function HomePage() {
     return <WelcomeView />;
   }
 
-  return <PathView guestSkills={guestSkills} userSkills={userSkills} />;
+  return <PathView guestSkills={guestSkills} userProfile={userProfile} user={user} />;
 }
 
 function WelcomeView() {
@@ -88,10 +88,11 @@ function WelcomeView() {
               <ThemeImage
                 srcLight="/hechun_logo/hechun_full_lm.png"
                 srcDark="/hechun_logo/hechun_full_dm.png"
-                alt="Hechun Logo"
-                width={400}
-                height={400}
-                className="object-contain w-full h-full"
+                alt="Hečhun Logo"
+                width={500}
+                height={500}
+                priority
+                className="object-contain w-full h-full drop-shadow-[0_0_25px_rgba(99,102,241,0.6)] dark:drop-shadow-[0_0_35px_rgba(139,92,246,0.7)]"
               />
             </div>
           </div>
@@ -201,57 +202,41 @@ function WelcomeView() {
 
 interface PathViewProps {
   guestSkills?: any;
-  userSkills?: any;
+  userProfile?: any;
+  user?: any;
 }
 
-function PathView({ guestSkills, userSkills }: PathViewProps) {
-  const [nextLesson, setNextLesson] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const user = useUser();
+function PathView({ guestSkills, userProfile, user }: PathViewProps) {
   const [resetting, setResetting] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  useEffect(() => {
-    async function fetchNext() {
-      // Get completed IDs for guest
-      let completedIds: number[] = [];
-      const localProgress = localStorage.getItem('hechun_guest_progress_counts');
-      if (localProgress) {
-        try {
-          const counts = JSON.parse(localProgress);
-          completedIds = Object.keys(counts).map(Number);
-        } catch (e) { }
-      }
+  // Get next recommended lesson (smart skill-based selection for auth users, default for guests)
+  const nextLessonData = useQuery(
+    api.lessons_new.getNextLesson,
+    user ? { userId: user.sub } : "skip"
+  );
 
-      try {
-        const res = await fetch('/api/next-lesson', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            guestSkills: guestSkills || {},
-            completedIds: completedIds
-          })
-        });
-        const data = await res.json();
-        if (data.lesson) {
-          setNextLesson(data.lesson);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchNext();
-  }, [guestSkills]);
+  // For guest users, get first reading_writing lesson
+  const guestLessons = useQuery(
+    api.lessons_new.getLessonsForSkill,
+    !user ? { skill: "reading_writing" } : "skip"
+  );
+
+  // Determine which lesson to show
+  const lessonToShow = user
+    ? nextLessonData
+    : guestLessons && guestLessons.length > 0
+      ? { completed: false, lesson: guestLessons[0], skill: "reading_writing" }
+      : undefined;
+
+  const resetProgressMutation = useMutation(api.users.resetProgress);
 
   const handleResetProgress = async () => {
     setResetting(true);
     try {
       if (user) {
-        // Server-side reset
-        const res = await fetch('/api/reset-progress', { method: 'POST' });
-        if (!res.ok) throw new Error('Failed to reset');
+        // Server-side reset via Convex
+        await resetProgressMutation({ userId: user.sub! });
       }
 
       // Always clear local (for mix scenarios or guest)
@@ -286,11 +271,11 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
           {/* Left Col: Recommendation */}
           <div>
             <h2 className="text-xl font-bold mb-6 text-muted-foreground uppercase text-sm tracking-widest pl-2">Current Objective</h2>
-            {loading ? (
+            {lessonToShow === undefined ? (
               <div className="flex justify-center py-20">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
-            ) : nextLesson ? (
+            ) : lessonToShow?.lesson ? (
               <div className="max-w-2xl mx-auto flex flex-col gap-6">
                 <div className="bg-card rounded-3xl p-8 text-card-foreground shadow-2xl relative overflow-hidden group md:hover:scale-[1.02] transition-transform cursor-pointer border border-border">
                   <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -298,14 +283,21 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
                   </div>
 
                   <div className="relative z-10">
-                    <span className="bg-primary/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4 inline-block text-primary">
-                      Next Up
-                    </span>
-                    <h2 className="text-3xl font-bold mb-2">{nextLesson.title}</h2>
-                    <p className="text-muted-foreground mb-6">{nextLesson.description}</p>
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="bg-primary/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-primary">
+                        Next Up
+                      </span>
+                      {lessonToShow.skill && (
+                        <span className="bg-blue-500/20 px-3 py-1 rounded-full text-xs font-semibold text-blue-600 dark:text-blue-400">
+                          {lessonToShow.skill.replace('_', ' & ')}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-3xl font-bold mb-2">{lessonToShow.lesson.title}</h2>
+                    <p className="text-muted-foreground mb-6">{lessonToShow.lesson.description}</p>
 
                     <div className="flex items-center gap-4">
-                      <Link href={`/lesson/${nextLesson.id}`}>
+                      <Link href={`/lesson/${lessonToShow.skill}/${lessonToShow.lesson.lesson_order}`}>
                         <button className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-lg">
                           Start Lesson <ArrowRight className="w-5 h-5" />
                         </button>
@@ -335,34 +327,10 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
                 </div>
               </div>
             )}
-          </div>
 
-
-          {/* Right Col: Stats & History */}
-          <div className="flex flex-col gap-6">
-            <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
-              <h2 className="text-xl font-bold mb-4 text-center text-card-foreground">Your Skill Profile</h2>
-              {(() => {
-                const skills = userSkills || guestSkills || {};
-                return (
-                  <SkillRadar
-                    skills={{
-                      reading: typeof skills.reading === 'number' ? skills.reading : 0,
-                      writing: typeof skills.writing === 'number' ? skills.writing : 0,
-                      grammar: typeof skills.grammar === 'number' ? skills.grammar : 0,
-                      vocabulary: typeof skills.vocabulary === 'number' ? skills.vocabulary : 0,
-                      speaking: typeof skills.speaking === 'number' ? skills.speaking : 0,
-                    }}
-                  />
-                );
-              })()}
-              <div className="mt-6 text-center text-sm text-muted-foreground">
-                Your adaptive profile updates after every lesson.
-              </div>
-            </div>
-
-            <Link href="/history">
-              <div className="bg-card hover:bg-accent/5 border border-border rounded-3xl p-6 shadow-sm flex items-center justify-between group transition-all cursor-pointer">
+            {/* Review & Redo Card */}
+            <Link href="/history" className="block mt-6">
+              <div className="max-w-2xl mx-auto bg-card hover:bg-accent/5 border border-border rounded-3xl p-6 shadow-sm flex items-center justify-between group transition-all cursor-pointer">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-blue-500/10 text-blue-500 rounded-full">
                     <RotateCcw className="w-6 h-6" />
@@ -376,6 +344,68 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
               </div>
             </Link>
           </div>
+
+
+          {/* Right Col: Stats & History */}
+          <div className="flex flex-col gap-6">
+            <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
+              <h2 className="text-xl font-bold mb-4 text-center text-card-foreground">Your Skill Profile</h2>
+              {(() => {
+                const skills = userProfile?.skill_vector || guestSkills || {};
+                // Migrate old format if present
+                const reading_writing = skills.reading_writing !== undefined
+                  ? skills.reading_writing
+                  : Math.max(skills.reading || 0, skills.writing || 0);
+
+                return (
+                  <SkillRadar
+                    skills={{
+                      reading_writing: typeof reading_writing === 'number' ? reading_writing : 0,
+                      grammar: typeof skills.grammar === 'number' ? skills.grammar : 0,
+                      vocabulary: typeof skills.vocabulary === 'number' ? skills.vocabulary : 0,
+                      speaking: typeof skills.speaking === 'number' ? skills.speaking : 0,
+                    }}
+                  />
+                );
+              })()}
+              <div className="mt-6 text-center text-sm text-muted-foreground">
+                Your adaptive profile updates after every lesson.
+              </div>
+            </div>
+
+            {/* Profile Stats Card */}
+            {user && userProfile && (
+              <Link href="/profile">
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-3xl p-6 border border-indigo-200 dark:border-indigo-800 hover:scale-[1.02] transition-transform cursor-pointer shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center">
+                      <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 dark:text-white">Your Profile</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Check out your stats and progress</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white/50 dark:bg-gray-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{userProfile.total_xp || 0}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Total XP</div>
+                    </div>
+                    <div className="bg-white/50 dark:bg-gray-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{userProfile.lessons_completed || 0}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Lessons</div>
+                    </div>
+                    <div className="bg-white/50 dark:bg-gray-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">{userProfile.streak_days || 0}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Day Streak</div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            )}
+
+          </div>
         </div>
 
 
@@ -383,4 +413,3 @@ function PathView({ guestSkills, userSkills }: PathViewProps) {
     </Layout>
   );
 }
-

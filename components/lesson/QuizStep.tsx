@@ -33,9 +33,10 @@ export default function QuizStep({ content, showTransliteration, onComplete }: Q
         if (selected === null) return;
 
         let isCorrect = false;
-        // Check by index (preferred) or text (legacy)
-        if (content.correct_index !== undefined) {
-            isCorrect = selected === content.correct_index;
+        // Check by index (support both camelCase and snake_case) or text (legacy)
+        const correctIdx = (content as any).correctIndex ?? content.correct_index;
+        if (correctIdx !== undefined) {
+            isCorrect = selected === correctIdx;
         } else if (content.correct_answer) {
             isCorrect = normalizedOptions[selected].text === content.correct_answer;
         }

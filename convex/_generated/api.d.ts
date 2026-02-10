@@ -8,9 +8,14 @@
  * @module
  */
 
+import type * as dashboard from "../dashboard.js";
 import type * as lessons from "../lessons.js";
+import type * as lessons_new from "../lessons_new.js";
+import type * as migrations from "../migrations.js";
 import type * as progress from "../progress.js";
+import type * as progress_new from "../progress_new.js";
 import type * as seed from "../seed.js";
+import type * as seedSkillLessons from "../seedSkillLessons.js";
 import type * as users from "../users.js";
 
 import type {
@@ -20,9 +25,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  dashboard: typeof dashboard;
   lessons: typeof lessons;
+  lessons_new: typeof lessons_new;
+  migrations: typeof migrations;
   progress: typeof progress;
+  progress_new: typeof progress_new;
   seed: typeof seed;
+  seedSkillLessons: typeof seedSkillLessons;
   users: typeof users;
 }>;
 

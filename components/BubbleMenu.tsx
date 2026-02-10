@@ -5,7 +5,8 @@ import { gsap } from 'gsap';
 
 interface BubbleMenuItem {
     label: string;
-    href: string;
+    href?: string; // Make optional for onClick-only items
+    onClick?: () => void; // Add callback support
     ariaLabel?: string;
     rotation?: number;
     hoverStyles?: {
@@ -238,19 +239,29 @@ const BubbleMenu: React.FC<BubbleMenuProps> = ({
                             // Improved active state matching
                             // Match if pathname is exactly href OR (if href is not root) starts with href
                             // This allows /hechun/lesson/1 to highlight /hechun
-                            const isActive = item.href === '/'
+                            const isActive = item.href ? (item.href === '/'
                                 ? router.pathname === '/'
-                                : router.pathname.startsWith(item.href);
+                                : router.pathname.startsWith(item.href)) : false;
 
                             // If active, use the hover color as the base bg/color
                             const activeBg = item.hoverStyles?.bgColor || '#f3f4f6';
                             const activeColor = item.hoverStyles?.textColor || menuContentColor;
 
+                            const handleClick = (e: React.MouseEvent) => {
+                                if (item.onClick) {
+                                    e.preventDefault();
+                                    item.onClick();
+                                    setIsMenuOpen(false); // Close menu after click
+                                    onMenuClick?.(false);
+                                }
+                            };
+
                             return (
                                 <li key={idx} role="none" className="pill-col">
                                     <a
                                         role="menuitem"
-                                        href={item.href}
+                                        href={item.href || '#'}
+                                        onClick={handleClick}
                                         aria-label={item.ariaLabel || item.label}
                                         className={`pill-link ${isActive ? 'active' : ''}`}
                                         style={{

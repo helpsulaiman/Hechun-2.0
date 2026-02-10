@@ -1,15 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import Link from 'next/link';
-import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
-import { fetchLessons } from '../lib/learning-api';
+import { useUser } from '@auth0/nextjs-auth0/client';
+import { useQuery } from 'convex/react';
+import { api } from '../convex/_generated/api';
 import { LearningLesson } from '../types/learning';
 import styles from '../styles/learn.module.css';
 import LevelNode from '../components/hechun/LevelNode';
 
 const HistoryPage: React.FC = () => {
-    const user = useUser();
-    const supabase = useSupabaseClient();
+    const { user, isLoading: authLoading } = useUser();
+
+    // Fetch user profile for completion data
+    const userProfile = useQuery(
+        api.users.getUser,
+        user ? { userId: user.sub! } : "skip"
+    );
+
+    // Fetch all skill-based lessons
+    const rwLessons = useQuery(api.lessons_new.getLessonsForSkill, { skill: "reading_writing" });
+    const speakingLessons = useQuery(api.lessons_new.getLessonsForSkill, { skill: "speaking" });
+    const grammarLessons = useQuery(api.lessons_new.getLessonsForSkill, { skill: "grammar" });
+    const vocabLessons = useQuery(api.lessons_new.getLessonsForSkill, { skill: "vocabulary" });
+
+
     const [activeTab, setActiveTab] = useState<'lessons' | 'concepts'>('lessons');
     const [concepts, setConcepts] = useState<{ term: string, meaning: string, lessonId: number, lessonTitle: string, type: string }[]>([]);
     const [lessons, setLessons] = useState<LearningLesson[]>([]);
@@ -25,10 +39,91 @@ const HistoryPage: React.FC = () => {
                 setLoading(true);
                 let fetchedLessons: LearningLesson[] = [];
 
-                if (user) {
-                    // --- 1. LOGGED IN USER ---
-                    const data = await fetchLessons(supabase, user.id);
-                    fetchedLessons = data.filter(l => (l.user_score || 0) >= 0.6);
+                if (user && userProfile && rwLessons && speakingLessons && grammarLessons && vocabLessons) {
+                    // Get completed lessons from skill arrays
+                    const completed = userProfile.lessons_completed_by_skill || {
+                        reading_writing: [],
+                        speaking: [],
+                        grammar: [],
+                        vocabulary: []
+                    };
+
+                    // Aggregate completed lessons from all skills
+                    const completedLessonsList: LearningLesson[] = [];
+
+                    // Reading & Writing
+                    completed.reading_writing.forEach((order: number) => {
+                        const lesson = rwLessons.find(l => l.lesson_order === order);
+                        if (lesson) {
+                            completedLessonsList.push({
+                                ...lesson,
+                                id: lesson.lesson_order,
+                                lesson_id: lesson.lesson_order,
+                                skill_category: 'reading_writing',
+                                user_score: 1.0,
+                                is_completed: true,
+                                is_locked: false,
+                                times_completed: 1,
+                                skills_targeted: { reading_writing: 1.0 }
+                            } as any);
+                        }
+                    });
+
+                    // Speaking
+                    completed.speaking.forEach((order: number) => {
+                        const lesson = speakingLessons.find(l => l.lesson_order === order);
+                        if (lesson) {
+                            completedLessonsList.push({
+                                ...lesson,
+                                id: lesson.lesson_order,
+                                lesson_id: lesson.lesson_order,
+                                skill_category: 'speaking',
+                                user_score: 1.0,
+                                is_completed: true,
+                                is_locked: false,
+                                times_completed: 1,
+                                skills_targeted: { speaking: 1.0 }
+                            } as any);
+                        }
+                    });
+
+                    // Grammar
+                    completed.grammar.forEach((order: number) => {
+                        const lesson = grammarLessons.find(l => l.lesson_order === order);
+                        if (lesson) {
+                            completedLessonsList.push({
+                                ...lesson,
+                                id: lesson.lesson_order,
+                                lesson_id: lesson.lesson_order,
+                                skill_category: 'grammar',
+                                user_score: 1.0,
+                                is_completed: true,
+                                is_locked: false,
+                                times_completed: 1,
+                                skills_targeted: { grammar: 1.0 }
+                            } as any);
+                        }
+                    });
+
+                    // Vocabulary
+                    completed.vocabulary.forEach((order: number) => {
+                        const lesson = vocabLessons.find(l => l.lesson_order === order);
+                        if (lesson) {
+                            completedLessonsList.push({
+                                ...lesson,
+                                id: lesson.lesson_order,
+                                lesson_id: lesson.lesson_order,
+                                skill_category: 'vocabulary',
+                                user_score: 1.0,
+                                is_completed: true,
+                                is_locked: false,
+                                times_completed: 1,
+                                skills_targeted: { vocabulary: 1.0 }
+                            } as any);
+                        }
+                    });
+
+                    fetchedLessons = completedLessonsList;
                 } else {
                     // --- 2. GUEST USER ---
                     const progressKey = 'hechun_guest_progress_counts';
@@ -108,7 +203,7 @@ const HistoryPage: React.FC = () => {
         loadHistory();
 
         return () => { isMounted = false; };
-    }, [user, supabase]);
+    }, [user, userProfile, rwLessons, speakingLessons, grammarLessons, vocabLessons]);
 
     return (
         <Layout title="History - Your Journey" fullWidth={true}>

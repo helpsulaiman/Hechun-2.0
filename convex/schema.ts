@@ -4,7 +4,7 @@ import { v } from "convex/values";
 export default defineSchema({
     // Users (equivalent to UserProfile)
     user_profiles: defineTable({
-        user_id: v.string(), // Links to Supabase Auth ID (indexed for speed)
+        user_id: v.string(), // Links to Auth0 ID (indexed for speed)
         postgres_id: v.optional(v.string()), // Legacy ID from Postgres migration
         username: v.optional(v.string()),
         email: v.optional(v.string()),
@@ -22,37 +22,65 @@ export default defineSchema({
         // Skill Tracking
         skill_vector: v.optional(
             v.object({
-                reading: v.number(),
-                writing: v.optional(v.number()), // Made optional as some seed data misses it
-                speaking: v.number(),
-                grammar: v.optional(v.number()), // Made optional
-                vocabulary: v.optional(v.number()), // Made optional
-                listening: v.optional(v.number()), // ADDED: Found in seed data
+                // New merged field
+                reading_writing: v.optional(v.float64()),
+                // Legacy fields (for backward compatibility during migration)
+                reading: v.optional(v.float64()),
+                writing: v.optional(v.float64()),
+                // Common fields
+                speaking: v.optional(v.float64()),
+                grammar: v.optional(v.float64()),
+                vocabulary: v.optional(v.float64()),
             })
         ),
-    }).index("by_user_id", ["user_id"]),
 
-    // Lessons 
-    lessons: defineTable({
-        lesson_id: v.number(),
+        // Lesson Completion Tracking (skill-based arrays)
+        lessons_completed_by_skill: v.optional(
+            v.object({
+                reading_writing: v.array(v.number()),
+                speaking: v.array(v.number()),
+                grammar: v.array(v.number()),
+                vocabulary: v.array(v.number()),
+            })
+        ),
+    })
+        .index("by_user_id", ["user_id"])
+        .index("by_email", ["email"]),
+
+    // Skill-Specific Lesson Tables
+    lessons_reading_writing: defineTable({
         lesson_order: v.number(),
         title: v.string(),
         description: v.optional(v.string()),
         content: v.any(),
-
         complexity: v.number(),
-        skills_targeted: v.optional(v.any()),
         xp_reward: v.number(),
     }).index("by_order", ["lesson_order"]),
 
-    // Lesson Progress
-    lesson_progress: defineTable({
-        user_id: v.string(),
-        lesson_id: v.number(),
+    lessons_speaking: defineTable({
+        lesson_order: v.number(),
+        title: v.string(),
+        description: v.optional(v.string()),
+        content: v.any(),
+        complexity: v.number(),
+        xp_reward: v.number(),
+    }).index("by_order", ["lesson_order"]),
 
-        score: v.number(),
-        completed_at: v.string(),
-    })
-        .index("by_user_lesson", ["user_id", "lesson_id"])
-        .index("by_user", ["user_id"]),
+    lessons_grammar: defineTable({
+        lesson_order: v.number(),
+        title: v.string(),
+        description: v.optional(v.string()),
+        content: v.any(),
+        complexity: v.number(),
+        xp_reward: v.number(),
+    }).index("by_order", ["lesson_order"]),
+
+    lessons_vocabulary: defineTable({
+        lesson_order: v.number(),
+        title: v.string(),
+        description: v.optional(v.string()),
+        content: v.any(),
+        complexity: v.number(),
+        xp_reward: v.number(),
+    }).index("by_order", ["lesson_order"]),
 });

@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import DashboardLayout from '../../../../components/DashboardLayout';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { Save, ArrowLeft, Trash2 } from 'lucide-react';
+import DashboardLayout from '@/components/DashboardLayout';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { Save, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 const LESSON_TEMPLATES = {
@@ -61,12 +63,19 @@ const LESSON_TEMPLATES = {
 
 const EditLessonPage: React.FC = () => {
     const router = useRouter();
-    const { id } = router.query;
-    const supabase = useSupabaseClient();
+    const { skill, id } = router.query;
 
-    const [loading, setLoading] = useState(true);
+    // Values extracted from query are strings or array of strings
+    const skillName = typeof skill === 'string' ? skill : null;
+    const lessonId = typeof id === 'string' ? id : null;
+
+    const convexLesson = useQuery(api.lessons_new.getLessonById,
+        (skillName && lessonId) ? { skill: skillName as any, lessonId: lessonId as any } : "skip"
+    );
+
+    const updateLesson = useMutation(api.lessons_new.updateLessonForSkill);
+
     const [saving, setSaving] = useState(false);
-    const [lesson, setLesson] = useState<any>(null);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -76,33 +85,17 @@ const EditLessonPage: React.FC = () => {
     });
 
     useEffect(() => {
-        if (id) fetchLesson();
-    }, [id]);
-
-    const fetchLesson = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('lessons')
-                .select('*')
-                .eq('id', Number(id))
-                .single();
-
-            if (error) throw error;
-
-            setLesson(data);
+        if (convexLesson) {
             setFormData({
-                title: data.title,
-                description: data.description || '',
-                complexity: data.complexity,
-                lesson_order: data.lesson_order,
-                content: typeof data.content === 'string' ? data.content : JSON.stringify(data.content, null, 2)
+                title: convexLesson.title,
+                description: convexLesson.description || '',
+                complexity: convexLesson.complexity || 1.0,
+                lesson_order: convexLesson.lesson_order,
+                content: typeof convexLesson.content === 'string' ? convexLesson.content : JSON.stringify(convexLesson.content, null, 2)
             });
-        } catch (error) {
-            console.error('Error fetching lesson:', error);
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [convexLesson]);
+
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -119,20 +112,20 @@ const EditLessonPage: React.FC = () => {
                 return;
             }
 
-            const updates = {
-                title: formData.title,
-                description: formData.description,
-                complexity: parseFloat(formData.complexity.toString()),
-                lesson_order: parseInt(formData.lesson_order.toString()),
-                content: parsedContent
-            };
+            if (!skillName || !lessonId) return;
 
-            const { error } = await supabase
-                .from('lessons')
-                .update(updates)
-                .eq('id', Number(id));
+            await updateLesson({
+                skill: skillName as any,
+                lessonId: lessonId as any,
+                updates: {
+                    title: formData.title,
+                    description: formData.description,
+                    complexity: parseFloat(formData.complexity.toString()),
+                    lesson_order: parseInt(formData.lesson_order.toString()),
+                    content: parsedContent
+                }
+            });
 
-            if (error) throw error;
             alert('Lesson updated successfully!');
             router.push('/dashboard/lessons');
 
@@ -173,13 +166,14 @@ const EditLessonPage: React.FC = () => {
         } catch (e) { return 'lesson'; }
     };
 
-    if (loading) return <div className="p-10 text-center text-white">Loading...</div>;
-    if (!lesson) return <div className="p-10 text-center text-white">Lesson not found</div>;
+    if (!skillName || !lessonId) return <div className="p-10 text-center text-white">Loading...</div>;
+    if (convexLesson === undefined) return <div className="p-10 text-center text-white">Loading Lesson Data...</div>;
+    if (convexLesson === null) return <div className="p-10 text-center text-white">Lesson not found or you do not have permission.</div>;
 
     return (
         <DashboardLayout>
             <Head>
-                <title>Edit Lesson {id} - Hechun Admin</title>
+                <title>Edit Lesson {formData.title || 'Unknown'} - Hechun Admin</title>
             </Head>
 
             <div className="max-w-4xl mx-auto space-y-6">
@@ -187,7 +181,7 @@ const EditLessonPage: React.FC = () => {
                     <Link href="/dashboard/lessons" className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
                         <ArrowLeft className="w-6 h-6" />
                     </Link>
-                    <h1 className="text-2xl font-bold text-white">Edit Lesson: {lesson.title}</h1>
+                    <h1 className="text-2xl font-bold text-white">Edit Lesson: {formData.title}</h1>
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-6">

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useAuth0 } from '@auth0/auth0-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import Layout from '../../components/Layout';
 import { Check, X } from 'lucide-react';
 
@@ -14,7 +16,7 @@ interface Question {
     options: string[];
     correct: number;
     category: QuestionCategory;
-    skill: 'speaking' | 'reading' | 'writing' | 'grammar' | 'vocabulary' | 'culture';
+    skill: 'speaking' | 'reading_writing' | 'grammar' | 'vocabulary';
 }
 
 // Mock Pool - In production this should be larger (20 per category * 10 complexity levels ideally)
@@ -38,21 +40,22 @@ const QUESTION_POOL: Question[] = [
     { id: 115, complexity: 5, category: 'speaking', skill: 'speaking', text: 'Saying goodbye:', options: ['Salam', 'Awa', 'Khuda Haafiz', 'Na'], correct: 2 },
 
     // --- READING / WRITING (Expanded & Randomized) ---
-    { id: 201, complexity: 1, category: 'reading_writing', skill: 'reading', text: 'Letter "A" in Kashmiri script:', options: ['ب', 'ا', 'ج', 'د'], correct: 1 },
-    { id: 202, complexity: 2, category: 'reading_writing', skill: 'reading', text: 'Identify "Pan" (Leaf):', options: ['پَن', 'تَن', 'مَن', 'لَن'], correct: 0 },
-    { id: 203, complexity: 5, category: 'reading_writing', skill: 'reading', text: 'Read: "کٲشُر"', options: ['Kashruk', 'Konder', 'Kashir', 'Koshur'], correct: 3 },
-    { id: 204, complexity: 6, category: 'reading_writing', skill: 'writing', text: 'Correct spelling for "School":', options: ['سکول', 'سوکول', 'سکال', 'اسکول'], correct: 0 },
-    { id: 205, complexity: 3, category: 'reading_writing', skill: 'reading', text: 'Which letter is "Tse"?', options: ['چ', 'ج', 'ژ', 'خ'], correct: 2 },
-    { id: 206, complexity: 8, category: 'reading_writing', skill: 'reading', text: 'Vowel mark for "Ü" sound:', options: ['Zer', 'Zabar', 'None', 'pesh'], correct: 3 }, // Tricky
-    { id: 207, complexity: 4, category: 'reading_writing', skill: 'reading', text: 'Read "آب" :', options: ['Sab', 'Aab', 'Tab', 'Kab'], correct: 1 },
-    { id: 208, complexity: 7, category: 'reading_writing', skill: 'writing', text: 'Write "Garr" (Home):', options: ['گَر', 'گھر', 'گرٕ', 'گار'], correct: 2 },
-    { id: 209, complexity: 3, category: 'reading_writing', skill: 'reading', text: 'Distinguish "R" (ر) vs "D" (ڑ):', options: ['Shape', 'Dot position', 'All of the above', 'Sound'], correct: 2 },
-    { id: 210, complexity: 10, category: 'reading_writing', skill: 'reading', text: 'Classic script style used in Kashmir:', options: ['Nastaliq', 'Naskh', 'Kufic', 'Thuluth'], correct: 0 },
-    { id: 211, complexity: 2, category: 'reading_writing', skill: 'reading', text: 'Identify "Naar" (Fire):', options: ['نور', 'نیر', 'تار', 'نار'], correct: 3 },
-    { id: 212, complexity: 4, category: 'reading_writing', skill: 'reading', text: 'Letter for "Ch" sound:', options: ['ج', 'ح', 'چ', 'خ'], correct: 2 },
-    { id: 213, complexity: 6, category: 'reading_writing', skill: 'writing', text: 'Write "Posh" (Flower):', options: ['پاش', 'پوش', 'فوش', 'بوش'], correct: 1 },
-    { id: 214, complexity: 5, category: 'reading_writing', skill: 'reading', text: 'Read "Dood" (Milk):', options: ['دُد', 'داد', 'ڈوڈ', 'دید'], correct: 0 },
-    { id: 215, complexity: 3, category: 'reading_writing', skill: 'reading', text: 'Identify numeral 5:', options: ['۶', '۴', '۵', '۷'], correct: 2 },
+    { id: 201, complexity: 1, category: 'reading_writing', skill: 'reading_writing', text: 'Letter "A" in Kashmiri script:', options: ['ب', 'ا', 'ج', 'د'], correct: 1 },
+    { id: 202, complexity: 2, category: 'reading_writing', skill: 'reading_writing', text: 'Identify "Pan" (Leaf):', options: ['پَن', 'تَن', 'مَن', 'لَن'], correct: 0 },
+    { id: 203, complexity: 5, category: 'reading_writing', skill: 'reading_writing', text: 'Read: "کٲشُر"', options: ['Kashruk', 'Konder', 'Kashir', 'Koshur'], correct: 3 },
+    { id: 204, complexity: 6, category: 'reading_writing', skill: 'reading_writing', text: 'Correct spelling for "School":', options: ['سکول', 'سوکول', 'سکال', 'اسکول'], correct: 0 },
+    { id: 205, complexity: 3, category: 'reading_writing', skill: 'reading_writing', text: 'Which letter is "Tse"?', options: ['چ', 'ج', 'ژ', 'خ'], correct: 2 },
+    { id: 206, complexity: 8, category: 'reading_writing', skill: 'reading_writing', text: 'Vowel mark for "Ü" sound:', options: ['Zer', 'Zabar', 'None', 'pesh'], correct: 3 }, // Tricky
+    { id: 207, complexity: 4, category: 'reading_writing', skill: 'reading_writing', text: 'Read "آب" :', options: ['Sab', 'Aab', 'Tab', 'Kab'], correct: 1 },
+    { id: 208, complexity: 7, category: 'reading_writing', skill: 'reading_writing', text: 'Write "Garr" (Home):', options: ['گَر', 'گھر', 'گرٕ', 'گار'], correct: 2 },
+    { id: 209, complexity: 3, category: 'reading_writing', skill: 'reading_writing', text: 'Distinguish "R" (ر) vs "D" (ڑ):', options: ['Shape', 'Dot position', 'All of the above', 'Sound'], correct: 2 },
+    { id: 210, complexity: 10, category: 'reading_writing', skill: 'reading_writing', text: 'Classic script style used in Kashmir:', options: ['Nastaliq', 'Naskh', 'Kufic', 'Thuluth'], correct: 0 },
+    { id: 211, complexity: 2, category: 'reading_writing', skill: 'reading_writing', text: 'Identify "Naar" (Fire):', options: ['نور', 'نیر', 'تار', 'نار'], correct: 3 },
+    { id: 212, complexity: 4, category: 'reading_writing', skill: 'reading_writing', text: 'Letter for "Ch" sound:', options: ['ج', 'ح', 'چ', 'خ'], correct: 2 },
+    { id: 213, complexity: 6, category: 'reading_writing', skill: 'reading_writing', text: 'Write "Posh" (Flower):', options: ['پاش', 'پوش', 'فوش', 'بوش'], correct: 1 },
+    { id: 214, complexity: 5, category: 'reading_writing', skill: 'reading_writing', text: 'Read "Dood" (Milk):', options: ['دُد', 'داد', 'ڈوڈ', 'دید'], correct: 0 },
+    { id: 215, complexity: 3, category: 'reading_writing', skill: 'reading_writing', text: 'Identify numeral 5:', options: ['۶', '۴', '۵', '۷'], correct: 2 },
+
 
     // --- GRAMMAR / VOCABULARY (Expanded & Randomized) ---
     { id: 301, complexity: 1, category: 'grammar_vocabulary', skill: 'vocabulary', text: 'Word for "Cat":', options: ['Hoon', 'Gurr', 'Byer', 'Khar'], correct: 2 },
@@ -74,8 +77,8 @@ const QUESTION_POOL: Question[] = [
 
 export default function DiagnosticTest() {
     const router = useRouter();
-    const user = useUser();
-    const supabase = useSupabaseClient();
+    const { user, isAuthenticated } = useAuth0();
+    const completeDiagnosticMutation = useMutation(api.users.completeDiagnostic);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [qIndex, setQIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -182,26 +185,91 @@ export default function DiagnosticTest() {
         }, 1000);
     };
 
+    const handleSkip = async () => {
+        // Calculate final skills from attempted questions (or 0 if none attempted)
+        const finalSkills = {
+            reading_writing: (pointsRef.current['reading'] || 0) + (pointsRef.current['writing'] || 0) + (pointsRef.current['reading_writing'] || 0),
+            speaking: pointsRef.current['speaking'] || 0,
+            grammar: pointsRef.current['grammar'] || 0,
+            vocabulary: pointsRef.current['vocabulary'] || 0,
+        };
+
+        try {
+            if (isAuthenticated && user) {
+                // Wait for user to be created with retry logic
+                let retries = 10;
+                let success = false;
+
+                while (retries > 0 && !success) {
+                    try {
+                        await completeDiagnosticMutation({
+                            userId: user.sub!,
+                            points: finalSkills,
+                        });
+                        success = true;
+                    } catch (error: any) {
+                        if (error.message?.includes("User not found")) {
+                            retries--;
+                            if (retries > 0) {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            } else {
+                                throw new Error("User creation timed out. Please try logging in again.");
+                            }
+                        } else {
+                            throw error;
+                        }
+                    }
+                }
+            } else {
+                // Save to localStorage for guests
+                localStorage.setItem('hechun_guest_skills', JSON.stringify(finalSkills));
+            }
+
+            router.push('/');
+        } catch (error: any) {
+            console.error('Failed to skip diagnostic:', error);
+            alert(error.message || 'Failed to save. Please try again.');
+        }
+    };
+
     const finishTest = async () => {
         setIsFinished(true);
         const earned = pointsRef.current;
         console.log('Points Earned in Test:', earned);
 
         try {
-            if (user) {
-                // Authenticated User: Save to DB
-                console.log('Saving diagnostic results to DB for user:', user.id);
-                const res = await fetch('/api/user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'complete_diagnostic',
-                        points: earned
-                    }),
-                });
+            if (isAuthenticated && user) {
+                // Authenticated User: Save to Convex with retry logic
+                console.log('Saving diagnostic results to Convex for user:', user.sub);
+                let retries = 10;
+                let success = false;
 
-                if (!res.ok) throw new Error('Failed to save scores');
-                console.log('Successfully saved to DB');
+                while (retries > 0 && !success) {
+                    try {
+                        await completeDiagnosticMutation({
+                            userId: user.sub!,
+                            points: {
+                                reading_writing: (earned.reading || 0) + (earned.writing || 0),
+                                speaking: earned.speaking || 0,
+                                grammar: earned.grammar || 0,
+                                vocabulary: earned.vocabulary || 0,
+                            },
+                        });
+                        success = true;
+                        console.log('Successfully saved to Convex');
+                    } catch (error: any) {
+                        if (error.message?.includes("User not found")) {
+                            retries--;
+                            if (retries > 0) {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            } else {
+                                throw new Error("User creation timed out. Please try logging in again.");
+                            }
+                        } else {
+                            throw error;
+                        }
+                    }
+                }
             } else {
                 // Guest User: Save to LocalStorage
                 if (typeof window !== 'undefined') {
@@ -256,25 +324,30 @@ export default function DiagnosticTest() {
                                 <h2 className="text-2xl font-bold leading-relaxed text-card-foreground mb-8">{currentQ.text}</h2>
 
                                 <div className="grid gap-4">
-                                    {currentQ.options.map((opt, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => handleAnswer(idx)}
-                                            disabled={isAnswered}
-                                            className={`
+                                    {currentQ.options.map((opt, idx) => {
+                                        // Detect if option contains Arabic/Kashmiri script
+                                        const hasKashmiriScript = /[\u0600-\u06FF]/.test(opt);
+
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => handleAnswer(idx)}
+                                                disabled={isAnswered}
+                                                className={`
                                                 p-4 rounded-xl text-left transition-all font-medium flex justify-between items-center
                                                 ${isAnswered && idx === currentQ.correct
-                                                    ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-500/20 dark:text-green-400 border'
-                                                    : isAnswered && idx === selected
-                                                        ? 'bg-red-100 border-destructive text-destructive font-bold'
-                                                        : 'bg-muted hover:bg-muted/80 border border-border text-card-foreground'}
+                                                        ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-500/20 dark:text-green-400 border'
+                                                        : isAnswered && idx === selected
+                                                            ? 'bg-red-100 border-destructive text-destructive font-bold'
+                                                            : 'bg-muted hover:bg-muted/80 border border-border text-card-foreground'}
                                             `}
-                                        >
-                                            <span className="text-kashmiri">{opt}</span>
-                                            {isAnswered && idx === currentQ.correct && <Check className="w-5 h-5" />}
-                                            {isAnswered && idx === selected && idx !== currentQ.correct && <X className="w-5 h-5" />}
-                                        </button>
-                                    ))}
+                                            >
+                                                <span className={hasKashmiriScript ? 'text-kashmiri' : ''}>{opt}</span>
+                                                {isAnswered && idx === currentQ.correct && <Check className="w-5 h-5" />}
+                                                {isAnswered && idx === selected && idx !== currentQ.correct && <X className="w-5 h-5" />}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </motion.div>
                         ) : (
@@ -298,6 +371,22 @@ export default function DiagnosticTest() {
                             </motion.div>
                         )}
                     </AnimatePresence>
+
+                    {/* Skip Button - Below question card */}
+                    {!isFinished && (
+                        <div className="mt-6 text-center">
+                            <button
+                                onClick={() => {
+                                    if (confirm('Skip the rest of the diagnostic? Your progress on answered questions will be saved.')) {
+                                        handleSkip();
+                                    }
+                                }}
+                                className="btn btn-secondary"
+                            >
+                                Skip Diagnostic
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </Layout>

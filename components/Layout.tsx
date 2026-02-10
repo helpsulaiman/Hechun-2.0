@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useConvexAuth } from 'convex/react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BubbleMenu from './BubbleMenu';
 import Footer from './Footer';
@@ -31,10 +32,13 @@ const Layout: React.FC<LayoutProps> = ({
     noIndex = false
 }) => {
     const router = useRouter();
-    const user = useUser();
-    const supabase = useSupabaseClient();
+    const { isAuthenticated, isLoading } = useConvexAuth();
+    const { user, loginWithRedirect } = useAuth0(); // Add loginWithRedirect
     const [isAdmin, setIsAdmin] = useState(false);
     const [streak, setStreak] = useState(0);
+
+    // Guest mode check
+    const isGuest = typeof window !== 'undefined' && localStorage.getItem('hechun_guest_onboarding') === 'true';
 
     const siteUrl = 'https://hechun.tech';
     const canonicalUrl = `${siteUrl}${router.asPath}`;
@@ -56,44 +60,19 @@ const Layout: React.FC<LayoutProps> = ({
 
     // Check admin status and fetch streak when user changes available
     useEffect(() => {
-        const fetchUserStats = async () => {
-            if (!user) {
-                // Guest Check
-                const hasGuestProgress = typeof window !== 'undefined' && (
-                    localStorage.getItem('hechun_guest_skills') ||
-                    localStorage.getItem('hechun_guest_progress_counts')
-                );
+        // TODO: Replace this with Convex query to check if user is admin
+        setIsAdmin(false);
+        setStreak(0);
+    }, [user]);
 
-                // Allow guests to see "Profile" and 0 streak (feature request: implement guest dates)
-                let guestStreak = 0;
-                try {
-                    const streakData = localStorage.getItem('hechun_guest_streak');
-                    if (streakData) {
-                        guestStreak = JSON.parse(streakData).currentStreak || 0;
-                    }
-                } catch (e) { }
-
-                setIsAdmin(false);
-                setStreak(guestStreak);
-                return;
-            }
-
-            // 1. Check Admin & Streak (Consolidated)
-            const { data: profile } = await supabase
-                .from('user_profiles')
-                .select('is_admin, streak_days')
-                .eq('user_id', user.id)
-                .maybeSingle();
-
-            setIsAdmin(profile?.is_admin === true);
-            setStreak(profile?.streak_days || 0);
-        };
-        fetchUserStats();
-    }, [user, supabase]);
-
-    const navItems = React.useMemo(() => {
-        const isGuest = typeof window !== 'undefined' && !!localStorage.getItem('hechun_guest_skills');
-
+    const menuItems: Array<{
+        label: string;
+        href?: string;
+        onClick?: () => void;
+        rotation: number;
+        hoverStyles: { bgColor: string; textColor: string; };
+        ariaLabel?: string;
+    }> = useMemo(() => {
         const items = [
             {
                 label: 'Home',
@@ -142,14 +121,20 @@ const Layout: React.FC<LayoutProps> = ({
         } else {
             items.push({
                 label: 'Login',
-                href: '/auth/login',
+                onClick: () => {
+                    loginWithRedirect({
+                        appState: {
+                            returnTo: router.asPath, // Return to current page after login
+                        },
+                    });
+                },
                 rotation: 8,
                 hoverStyles: { bgColor: '#ef4444', textColor: '#ffffff' } // Red
             });
         }
 
         return items;
-    }, [user, isAdmin]);
+    }, [user, isAdmin, router, loginWithRedirect, isGuest]);
 
     return (
         <>
@@ -226,7 +211,7 @@ const Layout: React.FC<LayoutProps> = ({
                                     />
                                 </Link>
                             }
-                            items={navItems}
+                            items={menuItems}
                             menuAriaLabel="Toggle navigation"
                             menuBg="#ffffff"
                             menuContentColor="#111111"

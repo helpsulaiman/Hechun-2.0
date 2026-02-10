@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { useUser, useSupabaseClient, useSessionContext } from '@supabase/auth-helpers-react';
+import { useAuth0 } from '@auth0/auth0-react';
+import { useConvexAuth, useQuery, useMutation } from 'convex/react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { fetchUserProfile, updateUserProfile } from '../lib/learning-api';
+import { api } from '../convex/_generated/api';
 import Layout from '../components/Layout';
 import * as Dialog from '@radix-ui/react-dialog';
 import SkillRadar from '../components/SkillRadar';
 
 const ProfilePage: React.FC = () => {
-    const { isLoading } = useSessionContext();
-    const user = useUser();
-    const supabase = useSupabaseClient();
+    const { user, logout, isAuthenticated, isLoading } = useAuth0();
     const router = useRouter();
+
+    // Convex queries and mutations
+    const userProfile = useQuery(api.users.getUser,
+        isAuthenticated && user ? { user_id: user.sub! } : "skip"
+    );
+
+    // Convex Mutations
+    const updateProfileMutation = useMutation(api.users.updateProfile);
+    const resetProgressMutation = useMutation(api.users.resetProgress);
+    const generateUploadUrl = useMutation(api.users.generateAvatarUploadUrl);
+    const getStorageUrl = useMutation(api.users.getStorageUrl);
+    const deleteAccountMutation = useMutation(api.users.deleteAccount);
 
     // Profile State
     const [username, setUsername] = useState('');
@@ -47,37 +58,93 @@ const ProfilePage: React.FC = () => {
 
     // Progress State
     const [stats, setStats] = useState({ totalXP: 0, lessonsCompleted: 0 });
-    const [skills, setSkills] = useState<any>({ reading: 0, grammar: 0, listening: 0, speaking: 0 });
+    const [skills, setSkills] = useState<any>({ reading_writing: 0, grammar: 0, speaking: 0, vocabulary: 0 });
 
-    const isOAuthUser = user?.app_metadata?.provider !== 'email';
+    // Derived values to ensure live updates from Convex
+    const currentStats = (isAuthenticated && userProfile) ? {
+        totalXP: userProfile.total_xp || 0,
+        lessonsCompleted: userProfile.lessons_completed || 0
+    } : stats;
+
+    const currentSkills = (isAuthenticated && userProfile) ?
+        (userProfile.skill_vector || { reading_writing: 0, grammar: 0, speaking: 0, vocabulary: 0 })
+        : skills;
+
+    // Check if user is OAuth vs email/password
+    const isOAuthUser = user?.sub?.startsWith('google-oauth2') || user?.sub?.startsWith('auth0');
 
     useEffect(() => {
-        if (user) {
+        if (isAuthenticated && user) {
             loadProfile();
-        } else if (!isLoading) {
+        } else if (!isLoading && !isAuthenticated) {
             loadGuestProgress();
         }
-    }, [user, isLoading]);
+    }, [user, isAuthenticated, isLoading]);
 
-    // ... (Effect for username check omitted)
+    // Debug auth state
+    useEffect(() => {
+        console.log('Profile Auth State:', { isAuthenticated, isLoading, hasUser: !!user, userSub: user?.sub });
+    }, [isAuthenticated, isLoading, user]);
+
+    // Real-time username validation with debouncing
+    const [debouncedUsername, setDebouncedUsername] = useState(username);
+
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setDebouncedUsername(username);
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [username]);
+
+    // Query username availability (only when username has changed)
+    const usernameCheckResult = useQuery(
+        api.users.checkUsername,
+        username && username !== originalUsername && username.length >= 3 && debouncedUsername === username
+            ? { username: debouncedUsername, currentUserId: user?.sub }
+            : "skip"
+    );
+
+    // Update validation state based on query result
+    useEffect(() => {
+        if (!username || username === originalUsername || username.length < 3) {
+            setUsernameMessage('');
+            setIsUsernameValid(null);
+            setIsCheckingUsername(false);
+            return;
+        }
+
+        if (debouncedUsername !== username) {
+            setIsCheckingUsername(true);
+            return;
+        }
+
+        if (usernameCheckResult !== undefined) {
+            setIsUsernameValid(usernameCheckResult.available);
+            setUsernameMessage(usernameCheckResult.message);
+            setIsCheckingUsername(false);
+        }
+    }, [username, originalUsername, debouncedUsername, usernameCheckResult]);
 
     const loadProfile = async () => {
         if (!user) return;
         try {
-            const profile = await fetchUserProfile(supabase, user.id);
-            const initialName = profile?.username || user.user_metadata?.full_name || user.email?.split('@')[0] || '';
-            setUsername(initialName);
-            setOriginalUsername(initialName);
-            setAvatarUrl(profile?.avatar_url || null);
-
-            if (profile) {
+            // Load from Convex or use Auth0 defaults
+            if (userProfile) {
+                setUsername(userProfile.username || user.name || '');
+                setOriginalUsername(userProfile.username || '');
+                setAvatarUrl(userProfile.avatar_url || user.picture || null);
                 setStats({
-                    totalXP: profile.total_xp || 0,
-                    lessonsCompleted: profile.lessons_completed || 0
+                    totalXP: userProfile.total_xp || 0,
+                    lessonsCompleted: userProfile.lessons_completed || 0
                 });
-                if (profile.skill_vector && typeof profile.skill_vector === 'object') {
-                    setSkills(profile.skill_vector);
-                }
+                setSkills(userProfile.skill_vector || { reading_writing: 0, grammar: 0, speaking: 0, vocabulary: 0 });
+            } else {
+                // Fallback to Auth0 user data while loading
+                const initialName = user.name || user.email?.split('@')[0] || '';
+                setUsername(initialName);
+                setOriginalUsername(initialName);
+                setAvatarUrl(user.picture || null);
+                setStats({ totalXP: 0, lessonsCompleted: 0 });
             }
         } catch (error) {
             console.error('Error loading profile:', error);
@@ -107,42 +174,54 @@ const ProfilePage: React.FC = () => {
     };
 
     const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !user) return;
+
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            setMessage({ type: 'error', text: 'Please upload a JPEG, JPG, PNG, or WebP image' });
+            return;
+        }
+
+        // Validate file size (8MB limit)
+        if (file.size > 8 * 1024 * 1024) {
+            setMessage({ type: 'error', text: 'Image must be smaller than 8MB' });
+            return;
+        }
+
+        setUploading(true);
+        setMessage({ type: 'success', text: 'Please wait while your picture is being uploaded...' });
+
         try {
-            setUploading(true);
-            setMessage(null);
+            // Get upload URL from Convex
+            const uploadUrl = await generateUploadUrl();
 
-            if (!event.target.files || event.target.files.length === 0) {
-                throw new Error('You must select an image to upload.');
+            // Upload file to Convex storage
+            const result = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': file.type },
+                body: file,
+            });
+
+            const { storageId } = await result.json();
+
+            // Get the proper URL from Convex storage
+            const imageUrl = await getStorageUrl({ storageId });
+
+            if (!imageUrl) {
+                throw new Error('Failed to get image URL from storage');
             }
 
-            const file = event.target.files[0];
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
-            const filePath = `${fileName}`;
-
-            // Upload to Supabase
-            const { error: uploadError } = await supabase.storage
-                .from('profile-images')
-                .upload(filePath, file);
-
-            if (uploadError) {
-                throw uploadError;
-            }
-
-            // Get Public URL
-            const { data } = supabase.storage
-                .from('profile-images')
-                .getPublicUrl(filePath);
-
-            const publicUrl = data.publicUrl;
-
-            // Update Profile
-            await updateUserProfile(supabase, user!.id, { avatar_url: publicUrl });
-            setAvatarUrl(publicUrl);
-            setMessage({ type: 'success', text: 'Profile picture updated!' });
-
+            // Update avatar URL in state (will be saved when user clicks Save)
+            setAvatarUrl(imageUrl);
+            setMessage({ type: 'success', text: 'Avatar uploaded! Click "Save Changes" to apply.' });
         } catch (error: any) {
-            setMessage({ type: 'error', text: error.message });
+            console.error('Avatar upload error:', error);
+            setMessage({
+                type: 'error',
+                text: error.message || 'Failed to upload avatar. Please try again.'
+            });
         } finally {
             setUploading(false);
         }
@@ -150,21 +229,54 @@ const ProfilePage: React.FC = () => {
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!isAuthenticated || !user) {
+            setMessage({ type: 'error', text: 'You must be logged in to update your profile.' });
+            return;
+        }
 
-        // Prevent update if username is invalid (and different from original)
+        // Validate username
+        if (!username || username.trim().length < 3) {
+            setMessage({ type: 'error', text: 'Username must be at least 3 characters long.' });
+            return;
+        }
+
+        if (username.trim().length > 30) {
+            setMessage({ type: 'error', text: 'Username must be less than 30 characters.' });
+            return;
+        }
+
+        // If username changed and validation failed, don't submit
         if (username !== originalUsername && isUsernameValid === false) {
+            setMessage({ type: 'error', text: usernameMessage || 'Please choose a different username.' });
             return;
         }
 
         setSaving(true);
         setMessage(null);
+
         try {
-            await updateUserProfile(supabase, user.id, { username });
-            setOriginalUsername(username);
-            setMessage({ type: 'success', text: 'Profile updated!' });
+            console.log('Updating profile:', { userId: user.sub, username, avatar_url: avatarUrl });
+
+            await updateProfileMutation({
+                userId: user.sub!,
+                username: username.trim(),
+                avatar_url: avatarUrl || undefined,
+            });
+
+            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+
+            // Update local state immediately so input reflects saved values
+            const trimmedUsername = username.trim();
+            setUsername(trimmedUsername);
+            setOriginalUsername(trimmedUsername);
+            setIsUsernameValid(null);
+            setUsernameMessage('');
         } catch (error: any) {
-            setMessage({ type: 'error', text: error.message || 'Failed to update' });
+            console.error('Profile update error:', error);
+            setMessage({
+                type: 'error',
+                text: error.message || 'Failed to update profile. Please try again.'
+            });
         } finally {
             setSaving(false);
         }
@@ -172,59 +284,31 @@ const ProfilePage: React.FC = () => {
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
-        setChangePasswordMessage(null);
-        setIsChangingPassword(true);
-
-        if (newPassword !== confirmNewPassword) {
-            setChangePasswordMessage({ type: 'error', text: 'Passwords do not match.' });
-            setIsChangingPassword(false);
-            return;
-        }
-
-        if (newPassword.length < 6) {
-            setChangePasswordMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
-            setIsChangingPassword(false);
-            return;
-        }
-
-        try {
-            const { error } = await supabase.auth.updateUser({
-                password: newPassword
-            });
-            if (error) throw error;
-            setChangePasswordMessage({ type: 'success', text: 'Password updated successfully!' });
-            setNewPassword('');
-            setConfirmNewPassword('');
-            // Optional: Close modal after delay
-            setTimeout(() => {
-                setIsChangePasswordModalOpen(false);
-                setChangePasswordMessage(null);
-            }, 1500);
-
-        } catch (error: any) {
-            setChangePasswordMessage({ type: 'error', text: error.message });
-        } finally {
-            setIsChangingPassword(false);
-        }
+        // TODO: Implement with Auth0 - redirect to Auth0 password change
+        setChangePasswordMessage({ type: 'error', text: 'Use Auth0 to change your password' });
+        return;
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push('/');
+    const handleLogout = () => {
+        logout({
+            logoutParams: {
+                returnTo: window.location.origin
+            }
+        });
     };
 
     const handleResetProgress = async () => {
         setResetting(true);
         try {
-            if (user) {
-                // Server-side reset
-                const res = await fetch('/api/reset-progress', { method: 'POST' });
-                if (!res.ok) throw new Error('Failed to reset');
+            if (isAuthenticated && user) {
+                // Call Convex mutation to reset progress
+                await resetProgressMutation({ userId: user.sub! });
             }
 
-            // Always clear local (for mix scenarios or guest)
+            // Always clear local storage (for guests or backup)
             localStorage.removeItem('hechun_guest_skills');
             localStorage.removeItem('hechun_guest_progress_counts');
+            localStorage.removeItem('hechun_guest_skills_selection');
 
             window.location.href = '/onboarding/start'; // Redirect to onboarding
         } catch (error) {
@@ -238,44 +322,27 @@ const ProfilePage: React.FC = () => {
 
     const handleDeleteAccount = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user?.email) return;
+        if (!isAuthenticated || !user) return;
 
         setIsDeleting(true);
         setDeleteError('');
 
         try {
-            if (isOAuthUser) {
-                if (deleteConfirmation.toUpperCase() !== 'DELETE') {
-                    throw new Error('Please type "DELETE" to confirm.');
-                }
-            } else {
-                // 1. Re-authenticate with password
-                const { error: authError } = await supabase.auth.signInWithPassword({
-                    email: user.email,
-                    password: deleteConfirmation
-                });
+            // Delete from Convex
+            await deleteAccountMutation({ userId: user.sub! });
 
-                if (authError) {
-                    throw new Error('Incorrect password. Please try again.');
-                }
-            }
+            // Clear local storage
+            localStorage.clear();
 
-            // 2. Call API to delete account
-            const res = await fetch('/api/delete-account', {
-                method: 'POST',
+            // Log out from Auth0
+            logout({
+                logoutParams: {
+                    returnTo: window.location.origin
+                }
             });
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Failed to delete account');
-            }
-
-            // 3. Sign out and redirect
-            await supabase.auth.signOut();
-            router.push('/');
-
         } catch (error: any) {
-            setDeleteError(error.message);
+            console.error('Delete account error:', error);
+            setDeleteError(error.message || 'Failed to delete account. Please try again.');
             setIsDeleting(false);
         }
     };
@@ -349,26 +416,52 @@ const ProfilePage: React.FC = () => {
                                     {/* Username Column */}
                                     <div className="flex-1 w-full space-y-4 pt-2">
                                         <div>
-                                            <label htmlFor="username" className="block text-sm font-medium mb-1 text-[var(--text-secondary)]">Display Name</label>
+                                            <label htmlFor="username" className="block font-medium mb-2 text-sm text-muted-foreground">
+                                                Username
+                                            </label>
                                             <div className="relative">
                                                 <input
                                                     id="username"
                                                     type="text"
                                                     value={username}
-                                                    onChange={e => setUsername(e.target.value)}
-                                                    className={`form-input w-full ${isUsernameValid === true ? 'border-green-500 focus:border-green-500' :
-                                                        isUsernameValid === false ? 'border-red-500 focus:border-red-500' : ''
+                                                    onChange={(e) => setUsername(e.target.value)}
+                                                    className={`form-input w-full transition-all ${isUsernameValid === false
+                                                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500 shadow-red-500/20 shadow-lg'
+                                                        : isUsernameValid === true
+                                                            ? 'border-green-500 focus:ring-green-500 focus:border-green-500 shadow-green-500/20 shadow-lg'
+                                                            : isCheckingUsername
+                                                                ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500'
+                                                                : ''
                                                         }`}
-                                                    placeholder="Enter username"
+                                                    placeholder="Choose a username"
                                                     minLength={3}
                                                 />
                                                 {isCheckingUsername && (
-                                                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">Checking...</span>
+                                                    <span className="absolute right-3 top-2.5 text-xs text-blue-500 flex items-center gap-1">
+                                                        <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Checking...
+                                                    </span>
+                                                )}
+                                                {isUsernameValid === true && !isCheckingUsername && (
+                                                    <span className="absolute right-3 top-2.5 text-green-500">
+                                                        ✓
+                                                    </span>
+                                                )}
+                                                {isUsernameValid === false && !isCheckingUsername && (
+                                                    <span className="absolute right-3 top-2.5 text-red-500">
+                                                        ⚠
+                                                    </span>
                                                 )}
                                             </div>
                                             {usernameMessage && (
-                                                <p className={`text-xs mt-1 ${isUsernameValid ? 'text-green-500' : 'text-red-500'}`}>
-                                                    {usernameMessage}
+                                                <p className={`text-xs mt-2 flex items-center gap-1 ${isUsernameValid
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : 'text-red-600 dark:text-red-400'
+                                                    }`}>
+                                                    {isUsernameValid ? '✓' : '⚠'} {usernameMessage}
                                                 </p>
                                             )}
                                         </div>
@@ -464,11 +557,11 @@ const ProfilePage: React.FC = () => {
                             <h2 className="text-2xl font-bold mb-6 text-[var(--text-primary)]">Your Progress</h2>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="dashboard-card items-center text-center py-6 px-4">
-                                    <span className="block text-4xl font-bold text-[var(--color-primary)] mb-1">{stats.totalXP}</span>
+                                    <span className="block text-4xl font-bold text-[var(--color-primary)] mb-1">{currentStats.totalXP}</span>
                                     <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Total XP</span>
                                 </div>
                                 <div className="dashboard-card items-center text-center py-6 px-4">
-                                    <span className="block text-4xl font-bold text-purple-600 mb-1">{stats.lessonsCompleted}</span>
+                                    <span className="block text-4xl font-bold text-purple-600 mb-1">{currentStats.lessonsCompleted}</span>
                                     <span className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Lessons</span>
                                 </div>
                             </div>
@@ -478,18 +571,25 @@ const ProfilePage: React.FC = () => {
                         <div>
                             <h3 className="text-lg font-bold mb-4 text-[var(--text-secondary)]">Skill Breakdown</h3>
                             <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl divide-y divide-[var(--border-color)]">
-                                {['reading', 'writing', 'speaking', 'listening', 'grammar', 'vocabulary'].map((key) => {
-                                    const value = skills[key] || 0;
+                                {['reading_writing', 'speaking', 'grammar', 'vocabulary'].map((key) => {
+                                    const skillLabels: Record<string, string> = {
+                                        reading_writing: 'Reading & Writing',
+                                        speaking: 'Speaking',
+                                        grammar: 'Grammar',
+                                        vocabulary: 'Vocabulary'
+                                    };
+                                    const skillColors: Record<string, string> = {
+                                        reading_writing: 'bg-indigo-500',
+                                        speaking: 'bg-green-500',
+                                        grammar: 'bg-yellow-500',
+                                        vocabulary: 'bg-red-500'
+                                    };
+                                    const value = currentSkills[key] || 0;
                                     return (
                                         <div key={key} className="flex items-center justify-between p-4">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-2 h-8 rounded-full ${key === 'reading' ? 'bg-indigo-500' :
-                                                    key === 'writing' ? 'bg-purple-500' :
-                                                        key === 'speaking' ? 'bg-green-500' :
-                                                            key === 'listening' ? 'bg-blue-500' :
-                                                                key === 'grammar' ? 'bg-yellow-500' : 'bg-red-500'
-                                                    }`}></div>
-                                                <span className="capitalize font-medium text-[var(--text-primary)]">{key}</span>
+                                                <div className={`w-2 h-8 rounded-full ${skillColors[key]}`}></div>
+                                                <span className="capitalize font-medium text-[var(--text-primary)]">{skillLabels[key]}</span>
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -512,7 +612,7 @@ const ProfilePage: React.FC = () => {
                     <section className="bg-white/5 border border-[var(--border-color)] rounded-3xl p-8 flex flex-col items-center justify-center min-h-[400px]">
                         <h2 className="text-2xl font-bold mb-4 text-[var(--text-primary)] text-center">Skill Profile</h2>
                         <SkillRadar
-                            skills={skills}
+                            skills={currentSkills}
                             size={350}
                             max={100}
                         />
@@ -521,6 +621,72 @@ const ProfilePage: React.FC = () => {
                         </div>
                     </section>
                 </div>
+
+                {/* Cookie Settings */}
+                {user && (
+                    <section>
+                        <h2 className="text-2xl font-bold mb-6 text-[var(--text-primary)]">Cookie Settings</h2>
+                        <div className="dashboard-card">
+                            <p className="text-sm text-[var(--text-secondary)] mb-4">
+                                Manage your cookie preferences. Some cookies are necessary for the site to function.
+                            </p>
+                            <div className="space-y-3">
+                                {(() => {
+                                    const savedConsent = localStorage.getItem('hechun_cookie_consent');
+                                    const consent = savedConsent ? JSON.parse(savedConsent) : {
+                                        necessary: true,
+                                        analytics: false,
+                                        functional: false
+                                    };
+
+                                    return (
+                                        <>
+                                            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                <div>
+                                                    <h4 className="font-semibold text-sm">Necessary Cookies</h4>
+                                                    <p className="text-xs text-[var(--text-secondary)]">Required for site functionality</p>
+                                                </div>
+                                                <input type="checkbox" checked={true} disabled className="w-4 h-4" />
+                                            </div>
+                                            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                <div>
+                                                    <h4 className="font-semibold text-sm">Analytics Cookies</h4>
+                                                    <p className="text-xs text-[var(--text-secondary)]">Help us improve lessons</p>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={consent.analytics}
+                                                    onChange={(e) => {
+                                                        const newConsent = { ...consent, analytics: e.target.checked };
+                                                        localStorage.setItem('hechun_cookie_consent', JSON.stringify(newConsent));
+                                                        window.location.reload();
+                                                    }}
+                                                    className="w-4 h-4 accent-indigo-600"
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                <div>
+                                                    <h4 className="font-semibold text-sm">Functional Cookies</h4>
+                                                    <p className="text-xs text-[var(--text-secondary)]">Remember your preferences</p>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={consent.functional}
+                                                    onChange={(e) => {
+                                                        const newConsent = { ...consent, functional: e.target.checked };
+                                                        localStorage.setItem('hechun_cookie_consent', JSON.stringify(newConsent));
+                                                        window.location.reload();
+                                                    }}
+                                                    className="w-4 h-4 accent-indigo-600"
+                                                />
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {/* Danger Zone */}
                 <section className="pt-8 border-t border-[var(--border-color)]">

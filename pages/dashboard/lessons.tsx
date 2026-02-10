@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import DashboardLayout from '../../components/DashboardLayout';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { BookOpen, Layers, Edit2, Trash2, Plus } from 'lucide-react';
 import { LearningLesson } from '../../types/learning';
+import { Id } from '../../convex/_generated/dataModel';
 
 // Group definitions
 const COMPLEXITY_GROUPS = [
@@ -15,72 +17,55 @@ const COMPLEXITY_GROUPS = [
 ];
 
 const ManageLessonsPage: React.FC = () => {
-    const supabase = useSupabaseClient();
-    const [lessons, setLessons] = useState<LearningLesson[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('beginner');
+    const router = useRouter();
 
-    useEffect(() => {
-        fetchLessons();
-    }, []);
+    // Queries
+    const rwLessons = useQuery(api.lessons_new.getLessonsForSkill, { skill: 'reading_writing' }) || [];
+    const speakLessons = useQuery(api.lessons_new.getLessonsForSkill, { skill: 'speaking' }) || [];
+    const grammarLessons = useQuery(api.lessons_new.getLessonsForSkill, { skill: 'grammar' }) || [];
+    const vocabLessons = useQuery(api.lessons_new.getLessonsForSkill, { skill: 'vocabulary' }) || [];
 
-    const fetchLessons = async () => {
-        setIsLoading(true);
-        try {
-            // Fetch all lessons ordered by order
-            const { data, error } = await supabase
-                .from('lessons')
-                .select('*')
-                .order('lesson_order', { ascending: true });
+    // Combine all lessons (or just filter by skill if you want)
+    // For this generic dashboard, we might want to show ALL, or add a skill filter.
+    // Assuming this dashboard was for ALL lessons mixed.
+    const allLessons = [...rwLessons, ...speakLessons, ...grammarLessons, ...vocabLessons];
 
-            if (error) throw error;
-            setLessons(data || []);
-        } catch (error) {
-            console.error('Error fetching lessons:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // Mutations
+    const deleteLesson = useMutation(api.lessons_new.deleteLessonForSkill);
+    const createLesson = useMutation(api.lessons_new.createLessonForSkill);
+
+
+    // No manual fetch needed with useQuery
 
     // Filter lessons by active tab complexity
-    const filteredLessons = lessons.filter(lesson => {
+    const filteredLessons = allLessons.filter((lesson: any) => {
         const group = COMPLEXITY_GROUPS.find(g => g.id === activeTab);
         if (!group) return false;
-        return lesson.complexity >= group.min && lesson.complexity <= group.max;
+        return (lesson.complexity || 1) >= group.min && (lesson.complexity || 1) <= group.max;
     });
 
-    const router = useRouter(); // hook import needed
 
-    const handleDelete = async (id: number) => {
+
+    const handleDelete = async (id: string, skill: string = 'reading_writing') => {
         if (!confirm('Are you sure you want to delete this lesson?')) return;
 
         try {
-            const res = await fetch(`/api/lessons/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                setLessons(lessons.filter(l => l.id !== id));
-            } else {
-                alert('Failed to delete lesson');
-            }
+            await deleteLesson({ lessonId: id as Id<"lessons_reading_writing"> }); // Cast for now, dynamic tables handled in backend
         } catch (e) {
             console.error(e);
             alert('Error deleting lesson');
         }
     };
 
-    const handleEdit = (id: number) => {
-        router.push(`/dashboard/lessons/edit/${id}`);
+    const handleEdit = (id: string, skill: string = 'reading_writing') => {
+        // We need skill in URL to know which table to query
+        router.push(`/dashboard/lessons/edit/${skill}/${id}`);
     };
 
     const handleCreateLesson = async () => {
-        try {
-            const res = await fetch('/api/lessons', { method: 'POST' });
-            if (!res.ok) throw new Error('Failed to create lesson');
-            const data = await res.json();
-            router.push(`/dashboard/lessons/edit/${data.id}`);
-        } catch (e) {
-            console.error(e);
-            alert('Failed to create new lesson');
-        }
+        // For new system, we just redirect to a create form where they pick skill
+        router.push(`/dashboard/lessons/create`);
     };
 
     return (
@@ -129,11 +114,7 @@ const ManageLessonsPage: React.FC = () => {
 
                 {/* Content */}
                 <div className="min-h-[400px]">
-                    {isLoading ? (
-                        <div className="flex justify-center py-20">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-                        </div>
-                    ) : filteredLessons.length === 0 ? (
+                    {filteredLessons.length === 0 ? (
                         <div className="text-center py-16 bg-white/5 rounded-2xl border border-white/10 border-dashed">
                             <BookOpen className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                             <h3 className="text-xl font-bold text-gray-300">No lessons found</h3>
@@ -141,14 +122,14 @@ const ManageLessonsPage: React.FC = () => {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
-                            {filteredLessons.map(lesson => (
+                            {filteredLessons.map((lesson: any) => (
                                 <div
-                                    key={lesson.id}
+                                    key={lesson._id}
                                     className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-5 transition-all group flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center"
                                 >
                                     <div className="flex items-start gap-4">
                                         <div className="bg-gray-800 rounded-lg w-12 h-12 flex items-center justify-center flex-shrink-0 font-mono text-gray-400 font-bold border border-white/5">
-                                            {lesson.id}
+                                            {lesson.lesson_order}
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-gray-200 group-hover:text-indigo-400 transition-colors">
@@ -169,14 +150,14 @@ const ManageLessonsPage: React.FC = () => {
 
                                     <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                                         <button
-                                            onClick={() => handleEdit(lesson.id)}
+                                            onClick={() => handleEdit(lesson._id, 'reading_writing')} // Todo: dynamic skill
                                             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg text-sm transition-colors"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                             Edit
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(lesson.id)}
+                                            onClick={() => handleDelete(lesson._id, 'reading_writing')} // Todo: dynamic skill
                                             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm transition-colors"
                                         >
                                             <Trash2 className="w-4 h-4" />

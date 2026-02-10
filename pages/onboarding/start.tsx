@@ -3,6 +3,9 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Check, Sparkles, BookOpen, Mic, PenTool } from 'lucide-react';
+import { useAuth0 } from '@auth0/auth0-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import Layout from '../../components/Layout';
 import ThemeImage from '../../components/ThemeImage';
 import { SkillLevel, SKILL_LEVELS, SkillProfile } from '../../types/hechun';
@@ -14,14 +17,14 @@ const STEPS = [
         subtitle: "Let's personalize your Kashmiri learning path. It only takes a minute.",
         icon: (
             <div className="w-32 h-32 relative animate-float">
-              <ThemeImage
-                srcLight="/hechun_logo/hechun_full_lm.png"
-                srcDark="/hechun_logo/hechun_full_dm.png"
-                alt="Hechun Logo"
-                width={400}
-                height={400}
-                className="object-contain w-full h-full drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-              />
+                <ThemeImage
+                    srcLight="/hechun_logo/hechun_full_lm.png"
+                    srcDark="/hechun_logo/hechun_full_dm.png"
+                    alt="Hechun Logo"
+                    width={400}
+                    height={400}
+                    className="object-contain w-full h-full drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+                />
             </div>
         ),
     },
@@ -50,6 +53,9 @@ const STEPS = [
 
 export default function OnboardingStart() {
     const router = useRouter();
+    const { user, isAuthenticated } = useAuth0();
+    const upsertUser = useMutation(api.users.upsertUser);
+
     const [currentStep, setCurrentStep] = useState(0);
     const [skillsSelection, setSkillsSelection] = useState<{
         speaking: SkillLevel | null;
@@ -100,32 +106,43 @@ export default function OnboardingStart() {
         if (isSubmitting) return;
         setIsSubmitting(true);
 
-        // Transform selection to API format (Expanded)
-        const expandedSkills = {
-            speaking: skillsSelection.speaking,
-            reading: skillsSelection.reading_writing,
-            writing: skillsSelection.reading_writing,
-            grammar: skillsSelection.grammar_vocabulary,
-            vocabulary: skillsSelection.grammar_vocabulary
-        };
-
         try {
-            const res = await fetch('/api/user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ skills: expandedSkills }),
-            });
+            if (isAuthenticated && user) {
+                // Wait for user to be created before updating (retry logic)
+                let retries = 10;
+                let success = false;
 
-            const data = await res.json();
-
-            if (data.isGuest && data.skillVector) {
-                // Save the vector (numeric) returned by API
-                localStorage.setItem('hechun_guest_skills', JSON.stringify(data.skillVector));
-
-                // Also save the SELECTION for Diagnostic calibration
+                while (retries > 0 && !success) {
+                    try {
+                        await upsertUser({
+                            user_id: user.sub!,
+                            skill_vector: {
+                                reading_writing: 0,
+                                speaking: 0,
+                                grammar: 0,
+                                vocabulary: 0,
+                            },
+                        });
+                        success = true;
+                    } catch (error: any) {
+                        if (error.message?.includes("User not found")) {
+                            retries--;
+                            if (retries > 0) {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            } else {
+                                throw new Error("User creation timed out. Please try logging in again.");
+                            }
+                        } else {
+                            throw error;
+                        }
+                    }
+                }
+            } else {
+                // Save selection to localStorage for guests
                 localStorage.setItem('hechun_guest_skills_selection', JSON.stringify(skillsSelection));
             }
 
+            // Check if user has prior knowledge to determine next step
             const hasPriorKnowledge = Object.values(skillsSelection).some(level => level !== 'none');
 
             if (hasPriorKnowledge) {
@@ -135,6 +152,7 @@ export default function OnboardingStart() {
             }
         } catch (error) {
             console.error('Failed to save profile:', error);
+            alert('Failed to save your selections. Please try again.');
             setIsSubmitting(false);
         }
     };

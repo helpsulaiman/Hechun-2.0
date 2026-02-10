@@ -27,7 +27,8 @@ export interface LearningLesson {
 
 export interface TeachContent {
     title: string;
-    description: string;
+    text?: string; // New database field
+    description?: string; // Legacy field
     kashmiri_text?: string;
     transliteration?: string;
     translation?: string; // English meaning
