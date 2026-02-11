@@ -386,3 +386,99 @@ export const deleteAccount = mutation({
         return { success: true };
     },
 });
+
+/**
+ * Sync guest data to user profile
+ * Merges skills, streak, and completed lessons
+ * Only adds points for lessons NOT already completed by the user
+ */
+export const syncGuestData = mutation({
+    args: {
+        userId: v.string(),
+        guestSkills: v.optional(v.object({
+            reading_writing: v.optional(v.number()),
+            speaking: v.optional(v.number()),
+            grammar: v.optional(v.number()),
+            vocabulary: v.optional(v.number()),
+        })),
+        guestLessons: v.optional(v.array(v.object({
+            id: v.string(), // composite key "skill-order" or just "order"
+            count: v.number()
+        }))),
+        guestStreak: v.optional(v.number())
+    },
+    handler: async (ctx, args) => {
+        const user = await ctx.db
+            .query("user_profiles")
+            .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        let updates: any = {};
+        let xpToAdd = 0;
+        let lessonsToAdd = 0;
+        let skillUpdates = { ...user.skill_vector };
+        let completedMap = { ...user.lessons_completed_by_skill };
+
+        // 1. Sync Lessons & Points
+        if (args.guestLessons) {
+            for (const item of args.guestLessons) {
+                // Parse key "skill-order"
+                const parts = item.id.split('-');
+                if (parts.length !== 2) continue; // Skip malformed keys
+
+                const skill = parts[0] as "reading_writing" | "speaking" | "grammar" | "vocabulary";
+                const order = parseInt(parts[1]);
+
+                // Check if valid skill
+                if (!['reading_writing', 'speaking', 'grammar', 'vocabulary'].includes(skill)) continue;
+
+                // Check if ALREADY completed
+                const currentCompleted = completedMap[skill] || [];
+                if (currentCompleted.includes(order)) {
+                    continue; // Already completed, skip points
+                }
+
+                // New Lesson! Add it.
+                if (!completedMap[skill]) completedMap[skill] = [];
+                completedMap[skill] = [...completedMap[skill]!, order]; // Add to list
+
+                lessonsToAdd++;
+
+                // Add Generic Rewards (since we don't look up every lesson object for performance)
+                // We assume standard rewards: 10 XP, 5 Skill Points. 
+                // A more robust solution would be to look up the lesson, but that's expensive for batch sync.
+                xpToAdd += 10;
+
+                // Add skill points
+                const currentSkillScore = skillUpdates?.[skill] || 0;
+                // Add 5 points per lesson as a safe default for guest sync
+                // We can fetch from guestSkills if we want to be precise, but guestSkills is a total.
+                // Simpler: Just rely on the fact that we unlock the lesson. 
+                // Actually, let's add a fixed amount per new lesson to recognize effort.
+                if (!skillUpdates) skillUpdates = {};
+                skillUpdates[skill] = (skillUpdates[skill] || 0) + 5;
+            }
+        }
+
+        // 2. Sync Streak (Max)
+        if (args.guestStreak && args.guestStreak > user.streak_days) {
+            updates.streak_days = args.guestStreak;
+        }
+
+        // Apply accumulations
+        if (lessonsToAdd > 0) {
+            updates.lessons_completed = (user.lessons_completed || 0) + lessonsToAdd;
+            updates.total_xp = (user.total_xp || 0) + xpToAdd;
+            updates.lessons_completed_by_skill = completedMap;
+            updates.skill_vector = skillUpdates;
+        }
+
+        updates.last_active_date = new Date().toISOString();
+
+        await ctx.db.patch(user._id, updates);
+
+        return { success: true, syncedLessons: lessonsToAdd };
+    },
+});

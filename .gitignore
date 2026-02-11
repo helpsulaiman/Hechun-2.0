@@ -46,7 +46,5 @@ prisma/
 #guidelines
 /duolingo writing guidelines
 /FEATURES_AND_GUIDELINES.md
-/current_project_status.md
-/SEEDING.md
-
+/convex_docs.md
 /scripts

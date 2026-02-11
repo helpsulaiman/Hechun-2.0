@@ -98,7 +98,7 @@ export default function LessonPlayer() {
     };
 
     const handleCompleteLesson = async (score: number) => {
-        if (submitting || !user) return;
+        if (submitting) return;
 
         setSubmitting(true);
         setShowSparkle(true);
@@ -118,6 +118,58 @@ export default function LessonPlayer() {
                 skillPoints = 5; // Default value for completing a special lesson
             }
 
+            if (!user) {
+                // --- GUEST MODE: Save to LocalStorage ---
+
+                // 1. Update Lesson Counts
+                const progressKey = 'hechun_guest_progress_counts';
+                const currentProgress = JSON.parse(localStorage.getItem(progressKey) || '{}');
+                // Use composite key to avoid collisions: skill-order
+                const lessonKey = `${skillType}-${lesson.lesson_order}`;
+                currentProgress[lessonKey] = (currentProgress[lessonKey] || 0) + 1;
+                localStorage.setItem(progressKey, JSON.stringify(currentProgress));
+
+                // 2. Update Skills
+                const skillsKey = 'hechun_guest_skills';
+                const currentSkills = JSON.parse(localStorage.getItem(skillsKey) || '{}');
+                // Initialize if empty
+                if (!currentSkills.reading_writing) currentSkills.reading_writing = 0;
+                if (!currentSkills.speaking) currentSkills.speaking = 0;
+                if (!currentSkills.grammar) currentSkills.grammar = 0;
+                if (!currentSkills.vocabulary) currentSkills.vocabulary = 0;
+
+                // Add points to the specific skill
+                if (skillType) {
+                    currentSkills[skillType] = (currentSkills[skillType] || 0) + skillPoints;
+                }
+                localStorage.setItem(skillsKey, JSON.stringify(currentSkills));
+
+                // 3. Update Streak
+                const streakKey = 'hechun_guest_streak';
+                const today = new Date().toDateString();
+                const streakData = JSON.parse(localStorage.getItem(streakKey) || '{}');
+
+                if (streakData.lastVisit !== today) {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+
+                    if (streakData.lastVisit === yesterday.toDateString()) {
+                        streakData.currentStreak = (streakData.currentStreak || 0) + 1;
+                    } else {
+                        streakData.currentStreak = 1;
+                    }
+                    streakData.lastVisit = today;
+                    localStorage.setItem(streakKey, JSON.stringify(streakData));
+                }
+
+                // Redirect
+                setTimeout(() => {
+                    router.push('/');
+                }, 2000);
+                return;
+            }
+
+            // --- AUTHENTICATED USER: Save to Convex ---
             await submitLessonMutation({
                 userId: user.sub!,
                 skill: skillType,

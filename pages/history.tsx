@@ -131,20 +131,28 @@ const HistoryPage: React.FC = () => {
                     if (localProgressRaw) {
                         try {
                             const localProgress = JSON.parse(localProgressRaw);
-                            fetchedLessons = Object.keys(localProgress).map((idStr, index) => ({
-                                id: parseInt(idStr),
-                                title: `Lesson ${idStr}`,
-                                description: 'Completed as Guest',
-                                lesson_order: index + 1,
-                                content: {},
-                                complexity: 1,
-                                skills_targeted: {},
-                                xp_reward: 10,
-                                user_score: 1.0,
-                                is_locked: false,
-                                is_completed: true,
-                                times_completed: localProgress[idStr]
-                            }));
+                            fetchedLessons = Object.keys(localProgress).map((key, index) => {
+                                // Parse composite key "skill-order" or legacy "order"
+                                const parts = key.split('-');
+                                const isComposite = parts.length === 2;
+                                const skill = isComposite ? parts[0] : 'General';
+                                const order = isComposite ? parseInt(parts[1]) : parseInt(key);
+
+                                return {
+                                    id: order,
+                                    title: `${skill.replace('_', ' ')} Lesson ${order}`,
+                                    description: 'Completed as Guest',
+                                    lesson_order: order,
+                                    content: {},
+                                    complexity: 1,
+                                    skills_targeted: {},
+                                    xp_reward: 10,
+                                    user_score: 1.0,
+                                    is_locked: false,
+                                    is_completed: true,
+                                    times_completed: localProgress[key]
+                                }
+                            });
                         } catch (e) { }
                     }
                 }

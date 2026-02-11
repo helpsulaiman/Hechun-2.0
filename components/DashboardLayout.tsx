@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import ThemeImage from './ThemeImage'; // Ensure logo consistency
 import ThemeToggle from './ThemeToggle';
+import useGuestSync from '../hooks/useGuestSync';
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -145,6 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIs
 };
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+    useGuestSync(); // Auto-sync guest data on login
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
