@@ -262,7 +262,7 @@ function PathView({ guestSkills, userProfile, user }: PathViewProps) {
             Your Learning Path
           </h1>
           <div className="bg-primary/10 text-primary px-4 py-1 rounded-full text-sm font-medium">
-            Beta v2.05
+            Alpha 2.05
           </div>
         </div>
 
