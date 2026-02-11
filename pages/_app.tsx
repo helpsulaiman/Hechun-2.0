@@ -42,7 +42,12 @@ function AutoUserCreator() {
     return null;
 }
 
+import { useUpdateCheck } from '../hooks/useUpdateCheck';
+import UpdateOverlay from '../components/UpdateOverlay';
+
 function MyApp({ Component, pageProps }: AppProps) {
+    const { isUpdating } = useUpdateCheck();
+
     return (
         <Auth0Provider
             domain={process.env.NEXT_PUBLIC_AUTH0_DOMAIN!}
@@ -56,6 +61,7 @@ function MyApp({ Component, pageProps }: AppProps) {
             useRefreshTokensFallback={true}
         >
             <ConvexProviderWithAuth0 client={convex}>
+                <UpdateOverlay isVisible={isUpdating} />
                 <div className={`${kashmiriFont.variable}`}>
                     <AutoUserCreator />
                     <Component {...pageProps} />
