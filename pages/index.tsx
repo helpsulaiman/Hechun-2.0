@@ -222,12 +222,40 @@ function PathView({ guestSkills, userProfile, user }: PathViewProps) {
     !user ? { skill: "reading_writing" } : "skip"
   );
 
+  // Guest Progress State
+  const [guestProgress, setGuestProgress] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!user) {
+      const stored = localStorage.getItem('hechun_guest_progress_counts');
+      if (stored) {
+        setGuestProgress(JSON.parse(stored));
+      }
+    }
+  }, [user]);
+
   // Determine which lesson to show
   const lessonToShow = user
     ? nextLessonData
-    : guestLessons && guestLessons.length > 0
-      ? { completed: false, lesson: guestLessons[0], skill: "reading_writing" }
-      : undefined;
+    : (() => {
+      if (!guestLessons || guestLessons.length === 0) return undefined;
+
+      // Find first uncompleted lesson for guest
+      const nextGuestLesson = guestLessons.find(l => {
+        const key = `reading_writing-${l.lesson_order}`;
+        return !guestProgress[key];
+      });
+
+      // If all completed, maybe show the last one or the first one (loop)? 
+      // For now, let's show the next uncompleted, or the last one if all done.
+      const targetLesson = nextGuestLesson || guestLessons[guestLessons.length - 1];
+
+      return {
+        completed: false,
+        lesson: targetLesson,
+        skill: "reading_writing"
+      };
+    })();
 
   const resetProgressMutation = useMutation(api.users.resetProgress);
 
