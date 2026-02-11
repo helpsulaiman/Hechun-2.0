@@ -86,7 +86,7 @@ export default function LessonPlayer() {
         id: lesson.lesson_order,
         lesson_order: lesson.lesson_order,
         title: lesson.title,
-        description: lesson.description,
+        description: lesson.description ?? null,
         content: lesson.content,
         complexity: lesson.complexity,
         xp_reward: lesson.xp_reward,

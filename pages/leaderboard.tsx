@@ -21,8 +21,8 @@ interface UserProfile {
     email?: string | null;
     last_active_date?: string;
     skill_vector?: {
-        reading_writing: number;
-        speaking: number;
+        reading_writing?: number;
+        speaking?: number;
         grammar?: number;
         vocabulary?: number;
     };

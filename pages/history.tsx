@@ -14,7 +14,7 @@ const HistoryPage: React.FC = () => {
     // Fetch user profile for completion data
     const userProfile = useQuery(
         api.users.getUser,
-        user ? { userId: user.sub! } : "skip"
+        user ? { user_id: user.sub! } : "skip"
     );
 
     // Fetch all skill-based lessons

@@ -83,7 +83,7 @@ const ManageUsersPage: React.FC = () => {
         }
     };
 
-    const formatDate = (dateString: string | null) => {
+    const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return 'Never';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {

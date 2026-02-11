@@ -73,32 +73,39 @@ const Layout: React.FC<LayoutProps> = ({
         hoverStyles: { bgColor: string; textColor: string; };
         ariaLabel?: string;
     }> = useMemo(() => {
-        const items = [
-            {
-                label: 'Home',
-                href: '/',
-                rotation: -8,
-                hoverStyles: { bgColor: '#10b981', textColor: '#ffffff' } // Green
-            },
-            {
-                label: 'Lesson History',
-                href: '/history',
-                rotation: 8,
-                hoverStyles: { bgColor: '#f59e0b', textColor: '#ffffff' } // Amber
-            },
-            {
-                label: 'About Project',
-                href: '/about-project',
-                rotation: -6,
-                hoverStyles: { bgColor: '#8b5cf6', textColor: '#ffffff' } // Purple
-            },
-            {
-                label: 'About Us',
-                href: '/about-us',
-                rotation: 6,
-                hoverStyles: { bgColor: '#06b6d4', textColor: '#ffffff' } // Cyan 
-            },
-        ];
+        const items: Array<{
+            label: string;
+            href?: string;
+            onClick?: () => void;
+            rotation: number;
+            hoverStyles: { bgColor: string; textColor: string; };
+            ariaLabel?: string;
+        }> = [
+                {
+                    label: 'Home',
+                    href: '/',
+                    rotation: -8,
+                    hoverStyles: { bgColor: '#10b981', textColor: '#ffffff' } // Green
+                },
+                {
+                    label: 'Lesson History',
+                    href: '/history',
+                    rotation: 8,
+                    hoverStyles: { bgColor: '#f59e0b', textColor: '#ffffff' } // Amber
+                },
+                {
+                    label: 'About Project',
+                    href: '/about-project',
+                    rotation: -6,
+                    hoverStyles: { bgColor: '#8b5cf6', textColor: '#ffffff' } // Purple
+                },
+                {
+                    label: 'About Us',
+                    href: '/about-us',
+                    rotation: 6,
+                    hoverStyles: { bgColor: '#06b6d4', textColor: '#ffffff' } // Cyan 
+                },
+            ];
 
         // Add Dashboard link for admins
         if (isAdmin) {

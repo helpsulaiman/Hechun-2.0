@@ -40,7 +40,8 @@ next-env.d.ts
 # Temporary
 /tmp
 
-/lib/generated/prisma
+# /lib/generated/prisma
+prisma/
 
 #guidelines
 /duolingo writing guidelines

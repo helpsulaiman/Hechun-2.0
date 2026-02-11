@@ -22,6 +22,7 @@ export interface LearningLesson {
     // Joint / Hydrated fields
     user_score?: number; // 0.0 - 1.0 (Accuracy)
     is_locked?: boolean;
+    is_completed?: boolean;
     times_completed?: number;
 }
 
