@@ -16,9 +16,12 @@ interface InputStepProps {
     onComplete: (success: boolean) => void;
 }
 
+import { useSoundEffects } from '../../hooks/useSoundEffects';
+
 export default function InputStep({ content, showTransliteration, onComplete }: InputStepProps) {
     const [input, setInput] = useState('');
     const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle');
+    const { playSound } = useSoundEffects();
 
     const playAudio = () => {
         if (content.audio_url) {
@@ -45,9 +48,11 @@ export default function InputStep({ content, showTransliteration, onComplete }: 
 
         if (uniqueCorrect.has(guess)) {
             setStatus('correct');
+            playSound('correct');
             onComplete(true);
         } else {
             setStatus('wrong');
+            playSound('wrong');
             onComplete(false);
             // Don't auto-reset for input, let them see their mistake
         }

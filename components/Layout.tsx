@@ -38,7 +38,10 @@ const Layout: React.FC<LayoutProps> = ({
     const [streak, setStreak] = useState(0);
 
     // Guest mode check
-    const isGuest = typeof window !== 'undefined' && localStorage.getItem('hechun_guest_onboarding') === 'true';
+    const isGuest = typeof window !== 'undefined' && (
+        localStorage.getItem('hechun_guest_onboarding') === 'true' ||
+        !!localStorage.getItem('hechun_guest_skills')
+    );
 
     const siteUrl = 'https://hechun.tech';
     const canonicalUrl = `${siteUrl}${router.asPath}`;

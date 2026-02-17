@@ -14,10 +14,13 @@ import TeachStep from '../../../components/lesson/TeachStep';
 import QuizStep from '../../../components/lesson/QuizStep';
 import InputStep from '../../../components/lesson/InputStep';
 
+import { useSoundEffects } from '../../../hooks/useSoundEffects';
+
 export default function LessonPlayer() {
     const router = useRouter();
     const { skill, order } = router.query;
     const { user, isLoading: authLoading } = useAuth0();
+    const { playSound } = useSoundEffects();
 
     const lessonOrder = order ? parseInt(order as string) : null;
     const skillType = skill as "reading_writing" | "speaking" | "grammar" | "vocabulary" | undefined;
@@ -102,6 +105,7 @@ export default function LessonPlayer() {
 
         setSubmitting(true);
         setShowSparkle(true);
+        playSound('complete');
 
         try {
             // Calculate skill points (2 per quiz, 1 per teach)

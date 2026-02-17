@@ -14,9 +14,12 @@ interface QuizStepProps {
     onComplete: (success: boolean) => void;
 }
 
+import { useSoundEffects } from '../../hooks/useSoundEffects';
+
 export default function QuizStep({ content, showTransliteration, onComplete }: QuizStepProps) {
     const [selected, setSelected] = useState<number | null>(null);
     const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle');
+    const { playSound } = useSoundEffects();
 
     // Normalize options to objects
     const normalizedOptions = content.options.map(opt =>
@@ -43,9 +46,11 @@ export default function QuizStep({ content, showTransliteration, onComplete }: Q
 
         if (isCorrect) {
             setStatus('correct');
+            playSound('correct');
             onComplete(true);
         } else {
             setStatus('wrong');
+            playSound('wrong');
             onComplete(false);
             setTimeout(() => setStatus('idle'), 1000);
         }
